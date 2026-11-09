@@ -91,7 +91,7 @@ struct WorkspaceView: View {
                         Image(systemName: script.presentation == nil ? "doc.text" : "rectangle.on.rectangle").font(.system(size: 16)).foregroundStyle(model.library.selectedID == script.id ? Design.accent : .gray).padding(.top, 3)
                         VStack(alignment: .leading, spacing: 5) {
                             Text(script.title.isEmpty ? "Ohne Titel" : script.title).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                            Text((script.presentation.map { deck in "\(deck.sections.filter { !$0.pageIDs.isEmpty }.count) Folien · " } ?? "") + "\(ScriptParser.words(in: script.body).count) Wörter · \(script.language.title)").font(.system(size: 10)).foregroundStyle(.secondary)
+                            Text((script.presentation.map { deck in "\(deck.sections.filter { !$0.pageIDs.isEmpty }.count) Folien · " } ?? "") + "\(ScriptParser.words(in: script.body).count) Wörter · \(script.language.shortTitle)").font(.system(size: 10)).foregroundStyle(.secondary)
                         }
                     }.padding(.vertical, 7).tag(script.id)
                 }

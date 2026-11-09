@@ -17,10 +17,39 @@ struct NotchShape: Shape {
     }
 }
 
+/// Show/hide state of the prompter, animated by the overlay controller:
+/// the panel grows out of the notch and folds back into it.
+@MainActor @Observable
+final class OverlayReveal {
+    var shown: Bool
+    init(shown: Bool) { self.shown = shown }
+    static let hideSeconds = 0.2
+
+    func animation(showing: Bool, reduced: Bool) -> Animation {
+        if reduced { return .easeInOut(duration: showing ? 0.15 : 0.12) }
+        return showing ? .spring(response: 0.42, dampingFraction: 0.84) : .easeIn(duration: Self.hideSeconds - 0.04)
+    }
+}
+
 struct OverlayView: View {
     @Bindable var model: AppModel
     let topInset: Double
+    var reveal = OverlayReveal(shown: true)
     var body: some View {
+        content
+            .opacity(reveal.shown ? 1 : 0)
+            .mask(alignment: .top) {
+                // Docked: grows from the notch's size downwards. Floating: a
+                // light zoom. Reduce Motion only fades.
+                let reduced = model.preferences.value.reduceMotion || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+                let docked = model.preferences.value.docked
+                Rectangle().scaleEffect(x: reveal.shown || reduced ? 1 : (docked ? 0.34 : 0.94),
+                                        y: reveal.shown || reduced ? 1 : (docked ? 0.12 : 0.94),
+                                        anchor: docked ? .top : .center)
+            }
+    }
+
+    @ViewBuilder private var content: some View {
         let s = model.session
         let p = model.preferences.value
         VStack(spacing: 8) {
@@ -55,7 +84,10 @@ struct OverlayView: View {
                     .mask(LinearGradient(stops: [.init(color: .white, location: 0), .init(color: .white, location: 0.65), .init(color: .clear, location: 1)], startPoint: .top, endPoint: .bottom))
                 if s.gate.countdown > 0 {
                     Text("\(s.gate.countdown)").font(.system(size: 64, weight: .semibold, design: .rounded))
+                        .contentTransition(.numericText(countsDown: true))
+                        .animation(.snappy(duration: 0.3), value: s.gate.countdown)
                         .frame(maxWidth: .infinity, maxHeight: .infinity).background(.black.opacity(0.9 * p.prompterOpacity))
+                        .transition(.opacity)
                 }
             }
             OverlayFooter(session: s, mode: p.mode) { model.resetTimers() }

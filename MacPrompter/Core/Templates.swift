@@ -24,7 +24,7 @@ struct ScriptTemplate: Identifiable, Sendable {
         if isPresentation {
             return "\(slides.count) Folien · \(slides.reduce(0) { $0 + $1.pages }) PDF-Seiten · \(words) Wörter"
         }
-        return "\(language.title) · \(words) Wörter"
+        return "\(language.shortTitle) · \(words) Wörter"
     }
 
     static let all = [firstTake, introduction, presentation]

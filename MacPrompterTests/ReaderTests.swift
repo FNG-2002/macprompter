@@ -129,12 +129,42 @@ final class ReaderTests: XCTestCase {
         let clip = try XCTUnwrap(reader.subviews.first as? NSClipView)
         let text = try XCTUnwrap(clip.documentView as? NSTextView)
         let manager = try XCTUnwrap(text.layoutManager)
-        XCTAssertEqual(manager.temporaryAttribute(.foregroundColor, atCharacterIndex: 6, effectiveRange: nil) as? NSColor, NSColor.white)
+        func alpha(at index: Int) -> Double? {
+            (manager.temporaryAttribute(.foregroundColor, atCharacterIndex: index, effectiveRange: nil) as? NSColor).map { Double($0.alphaComponent) }
+        }
+        func boxed(_ index: Int) -> Bool { manager.temporaryAttribute(.backgroundColor, atCharacterIndex: index, effectiveRange: nil) != nil }
+        XCTAssertEqual(alpha(at: 6), 1)
+        XCTAssertTrue(boxed(6))
+        XCTAssertEqual(alpha(at: 0) ?? 0, ScriptStyle.spokenAlpha, accuracy: 0.001, "spoken text is dimmed")
+        XCTAssertNil(alpha(at: 12), "text still to read keeps its full colour")
         session.receiveTranscript("Hello brave world", segment: 0, endTime: 2)
         try await Task.sleep(for: .milliseconds(50))
-        XCTAssertNil(manager.temporaryAttribute(.foregroundColor, atCharacterIndex: 6, effectiveRange: nil))
-        XCTAssertEqual(manager.temporaryAttribute(.foregroundColor, atCharacterIndex: 12, effectiveRange: nil) as? NSColor, NSColor.white)
+        XCTAssertEqual(alpha(at: 6) ?? 0, ScriptStyle.spokenAlpha, accuracy: 0.001)
+        XCTAssertFalse(boxed(6))
+        XCTAssertEqual(alpha(at: 12), 1)
+        XCTAssertTrue(boxed(12))
+        session.reset()
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertNil(alpha(at: 0), "going back restores the full colour")
+        XCTAssertNil(alpha(at: 12))
         session.hide()
+    }
+
+    func testFontsAndTextColourChangeTheReader() throws {
+        for font in ReadingFont.allCases {
+            XCTAssertEqual(font.nsFont(size: 30).pointSize, 30, font.title)
+        }
+        XCTAssertTrue(ReadingFont.mono.nsFont(size: 20).isFixedPitch)
+        XCTAssertNotEqual(ReadingFont.serif.nsFont(size: 20).fontName, ReadingFont.system.nsFont(size: 20).fontName)
+        var prefs = Preferences()
+        prefs.textColor = .yellow
+        let styled = ScriptStyle.attributed("Hello [Pause] world", font: .systemFont(ofSize: 20), spacing: 4, color: prefs.textColor.nsColor)
+        XCTAssertEqual(styled.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor, ReadingColor.yellow.nsColor)
+        prefs.mode = .voice
+        let preview = ScriptStyle.preview("One two three four five six seven eight nine ten", preferences: prefs, scale: 0.5)
+        XCTAssertEqual((preview.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor)?.alphaComponent ?? 0, ScriptStyle.spokenAlpha, accuracy: 0.001)
+        XCTAssertNotNil(preview.attribute(.backgroundColor, at: 24, effectiveRange: nil), "the sixth word is the current one")
+        XCTAssertEqual((preview.attribute(.font, at: 40, effectiveRange: nil) as? NSFont)?.pointSize, prefs.fontSize * 0.5)
     }
 
     func testOverlayKeepsReaderWhenResizedAndRepositioned() async throws {

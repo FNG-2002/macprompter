@@ -145,8 +145,11 @@ struct SettingsView: View {
                 ForEach(ReadingFont.allCases) { Text($0.title).tag($0) }
             }
             ValueSlider(title: "Textgröße", value: $model.preferences.value.fontSize, range: 18...56, suffix: "pt")
+            Picker("Textfarbe", selection: $model.preferences.value.textColor) {
+                ForEach(ReadingColor.allCases) { Text($0.title).tag($0) }
+            }
             ValueSlider(title: "Zeilenabstand", value: $model.preferences.value.lineSpacing, range: 4...28, suffix: "pt")
-            Text("OpenDyslexic ist eine zusätzliche Leseoption. Wähle die Schrift, die sich für dich am angenehmsten liest.").font(.caption).foregroundStyle(.secondary)
+            Text("„Dyslexie“ nutzt OpenDyslexic, eine zusätzliche Leseoption. Wähle die Schrift, die sich für dich am angenehmsten liest.").font(.caption).foregroundStyle(.secondary)
         }
         Section("Prompter") {
             Toggle("Lesezeile hervorheben", isOn: $model.preferences.value.focusLine)

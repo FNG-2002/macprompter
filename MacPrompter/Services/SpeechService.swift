@@ -120,7 +120,7 @@ final class SpeechService {
         isListening = true
         startMilliseconds = (ProcessInfo.processInfo.systemUptime - began) * 1000
         startMicrophoneMilliseconds = (microphone + ProcessInfo.processInfo.systemUptime - attaching) * 1000
-        status = "Hört zu · \(language.title) · lokal"
+        status = "Hört zu · \(language.shortTitle) · lokal"
     }
 
     private func attachInput(to engine: AVAudioEngine, format: AVAudioFormat, sink: AsyncStream<AnalyzerInput>.Continuation, run: UUID, startingAt frames: Int64, preferSink: Bool = true) throws {
@@ -190,7 +190,7 @@ final class SpeechService {
     /// inner capitals. The spell checker is unsuitable: it accepts names and
     /// every word the user taught it.
     static func dictationVocabulary(for script: String, language: SpeechLanguage, limit: Int = 50) -> [String] {
-        let embedding = NLEmbedding.wordEmbedding(for: language == .german ? .german : .english)
+        let embedding = NLEmbedding.wordEmbedding(for: NLLanguage(rawValue: language.code))
         return Array(ScriptParser.vocabulary(in: script).filter { word in
             word.contains(where: \.isNumber) || word.dropFirst().contains(where: \.isUppercase)
                 || embedding.map { !$0.contains(word.lowercased()) && !$0.contains(word) } ?? true
@@ -267,6 +267,17 @@ struct InputMeter {
         guard publishedAt.map({ endTime - $0 >= Self.interval }) ?? true else { return (nil, block) }
         defer { pending = 0; publishedAt = endTime }
         return (pending, block)
+    }
+}
+
+extension SpeechLanguage {
+    /// Languages of Apple's on-device dictation model (54 locales on macOS 26),
+    /// without writing systems that do not separate words. The model for a
+    /// language is downloaded by macOS on first use.
+    static func available() async -> [SpeechLanguage] {
+        let locales = await DictationTranscriber.supportedLocales
+        let languages = Set(locales.map { SpeechLanguage(rawValue: $0.identifier(.bcp47)) }).filter(\.separatesWords)
+        return languages.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 }
 

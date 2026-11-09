@@ -334,8 +334,8 @@ final class PrompterSession {
     }
 
     private func recordSemanticAvailability(_ available: Bool, language: SpeechLanguage) {
-        if language == .german { semanticGermanAvailable = available }
-        else { semanticEnglishAvailable = available }
+        if language.code == "de" { semanticGermanAvailable = available }
+        else if language.code == "en" { semanticEnglishAvailable = available }
     }
 
     func didApplyWordHighlight(_ range: NSRange?) {

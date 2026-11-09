@@ -7,6 +7,7 @@ struct ScriptSettings: Codable, Equatable, Sendable {
     var mode = PlaybackMode.automatic
     var speed = 36.0
     var font = ReadingFont.system
+    var textColor = ReadingColor.white
     var fontSize = 28.0
     var lineSpacing = 12.0
     var focusLine = true
@@ -25,6 +26,7 @@ struct ScriptSettings: Codable, Equatable, Sendable {
         mode = (try? c.decodeIfPresent(PlaybackMode.self, forKey: .mode)) ?? d.mode
         speed = (try? c.decodeIfPresent(Double.self, forKey: .speed)) ?? d.speed
         font = (try? c.decodeIfPresent(ReadingFont.self, forKey: .font)) ?? d.font
+        textColor = (try? c.decodeIfPresent(ReadingColor.self, forKey: .textColor)) ?? d.textColor
         fontSize = (try? c.decodeIfPresent(Double.self, forKey: .fontSize)) ?? d.fontSize
         lineSpacing = (try? c.decodeIfPresent(Double.self, forKey: .lineSpacing)) ?? d.lineSpacing
         focusLine = (try? c.decodeIfPresent(Bool.self, forKey: .focusLine)) ?? d.focusLine
@@ -52,14 +54,14 @@ extension Preferences {
     var scriptSettings: ScriptSettings {
         get {
             var s = ScriptSettings()
-            s.mode = mode; s.speed = speed; s.font = font; s.fontSize = fontSize; s.lineSpacing = lineSpacing
+            s.mode = mode; s.speed = speed; s.font = font; s.textColor = textColor; s.fontSize = fontSize; s.lineSpacing = lineSpacing
             s.focusLine = focusLine; s.prompterOpacity = prompterOpacity; s.docked = docked
             s.width = width; s.height = height; s.presenterView = presenterView
             return s
         }
         set {
             let s = newValue.clamped
-            mode = s.mode; speed = s.speed; font = s.font; fontSize = s.fontSize; lineSpacing = s.lineSpacing
+            mode = s.mode; speed = s.speed; font = s.font; textColor = s.textColor; fontSize = s.fontSize; lineSpacing = s.lineSpacing
             focusLine = s.focusLine; prompterOpacity = s.prompterOpacity; docked = s.docked
             width = s.width; height = s.height; presenterView = s.presenterView
         }

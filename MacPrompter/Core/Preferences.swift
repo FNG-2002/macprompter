@@ -2,10 +2,29 @@ import Foundation
 import Observation
 
 enum ReadingFont: String, Codable, CaseIterable, Identifiable {
-    case system, rounded, openDyslexic
+    case system, rounded, serif, mono, openDyslexic
     var id: Self { self }
     var title: String {
-        switch self { case .system: "System"; case .rounded: "Rund"; case .openDyslexic: "OpenDyslexic" }
+        switch self { case .system: "System"; case .rounded: "Rund"; case .serif: "Serif"; case .mono: "Mono"; case .openDyslexic: "Dyslexie" }
+    }
+}
+
+/// Text colour of the prompter. Cues keep their own grey.
+enum ReadingColor: String, Codable, CaseIterable, Identifiable {
+    case white, yellow, green, blue, pink, orange
+    var id: Self { self }
+    var title: String {
+        switch self { case .white: "Weiß"; case .yellow: "Gelb"; case .green: "Grün"; case .blue: "Blau"; case .pink: "Rosa"; case .orange: "Orange" }
+    }
+    var rgb: (red: Double, green: Double, blue: Double) {
+        switch self {
+        case .white: (1, 1, 1)
+        case .yellow: (1, 0.86, 0.3)
+        case .green: (0.45, 0.9, 0.55)
+        case .blue: (0.5, 0.72, 1)
+        case .pink: (1, 0.6, 0.75)
+        case .orange: (1, 0.7, 0.35)
+        }
     }
 }
 
@@ -74,6 +93,11 @@ struct Preferences: Codable, Equatable {
     var slidesFollowReading: Bool {
         get { slidesFollow ?? true }
         set { slidesFollow = newValue }
+    }
+    private var readingColor: ReadingColor?
+    var textColor: ReadingColor {
+        get { readingColor ?? .white }
+        set { readingColor = newValue }
     }
     private var remoteEnabled: Bool?
     var remoteControlEnabled: Bool {

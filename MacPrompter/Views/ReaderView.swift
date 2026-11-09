@@ -6,15 +6,28 @@ extension ReadingFont {
     func nsFont(size: CGFloat) -> NSFont {
         switch self {
         case .system: return .systemFont(ofSize: size, weight: .medium)
-        case .rounded:
-            let base = NSFont.systemFont(ofSize: size, weight: .medium)
-            return base.fontDescriptor.withDesign(.rounded).flatMap { NSFont(descriptor: $0, size: size) } ?? base
+        case .rounded: return Self.designed(.rounded, size: size)
+        case .serif: return Self.designed(.serif, size: size)
+        case .mono: return Self.designed(.monospaced, size: size)
         case .openDyslexic: return NSFont(name: "OpenDyslexic-Regular", size: size) ?? .systemFont(ofSize: size)
         }
     }
+
+    private static func designed(_ design: NSFontDescriptor.SystemDesign, size: CGFloat) -> NSFont {
+        let base = NSFont.systemFont(ofSize: size, weight: .medium)
+        return base.fontDescriptor.withDesign(design).flatMap { NSFont(descriptor: $0, size: size) } ?? base
+    }
+}
+
+extension ReadingColor {
+    var nsColor: NSColor { NSColor(srgbRed: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1) }
+    var color: Color { Color(.sRGB, red: rgb.red, green: rgb.green, blue: rgb.blue) }
 }
 
 enum ScriptStyle {
+    /// Voice mode: brightness of text that was already spoken.
+    static let spokenAlpha = 0.38
+
     static func attributed(_ text: String, font: NSFont, spacing: Double, color: NSColor = .white) -> NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = spacing
@@ -22,6 +35,20 @@ enum ScriptStyle {
         let result = NSMutableAttributedString(string: text, attributes: [.font: font, .foregroundColor: color, .paragraphStyle: paragraph])
         for range in ScriptParser.cueRanges(in: text) {
             result.addAttributes([.foregroundColor: NSColor(white: 0.55, alpha: 1), .font: NSFontManager.shared.convert(font, toHaveTrait: .italicFontMask)], range: range)
+        }
+        return result
+    }
+
+    /// The side-pane preview at `scale`; in voice mode it shows the first
+    /// words as spoken and the next one as the current word.
+    static func preview(_ text: String, preferences p: Preferences, scale: Double) -> NSAttributedString {
+        let color = p.textColor.nsColor
+        let result = NSMutableAttributedString(attributedString: attributed(text, font: p.font.nsFont(size: p.fontSize * scale), spacing: p.lineSpacing * scale, color: color))
+        let words = ScriptParser.words(in: text)
+        if p.mode == .voice, words.count > 8 {
+            let current = words[5].range
+            result.addAttribute(.foregroundColor, value: color.withAlphaComponent(spokenAlpha), range: NSRange(location: 0, length: current.location))
+            result.addAttribute(.backgroundColor, value: NSColor(white: 0.2, alpha: 1), range: current)
         }
         return result
     }
@@ -70,6 +97,8 @@ final class ReaderViewport: NSView {
     var isFrameClockRunning: Bool { frameLink.map { !$0.isPaused } ?? false }
     private var laidOut = false
     private var highlightedRange: NSRange?
+    /// Voice mode: text before the spoken word is dimmed up to here.
+    private var dimmedLength = 0
     override var isFlipped: Bool { true }
 
     init(session: PrompterSession) {
@@ -134,13 +163,20 @@ final class ReaderViewport: NSView {
 
     func update(preferences: Preferences) {
         let typographyChanged = lastPreferences?.font != preferences.font || lastPreferences?.fontSize != preferences.fontSize || lastPreferences?.lineSpacing != preferences.lineSpacing || lastPreferences?.mode != preferences.mode
-        if lastBody != session.script.body || typographyChanged {
+        if lastBody != session.script.body || typographyChanged || lastPreferences?.textColor != preferences.textColor {
+            // A colour change keeps the layout; only glyph colours change.
+            let relayout = lastBody != session.script.body || typographyChanged
             lastBody = session.script.body
-            text.textStorage?.setAttributedString(ScriptStyle.attributed(lastBody, font: preferences.font.nsFont(size: preferences.fontSize), spacing: preferences.lineSpacing, color: preferences.mode == .voice ? NSColor(white: 0.68, alpha: 1) : .white))
+            text.textStorage?.setAttributedString(ScriptStyle.attributed(lastBody, font: preferences.font.nsFont(size: preferences.fontSize), spacing: preferences.lineSpacing, color: preferences.textColor.nsColor))
             setAccessibilityValue(lastBody)
-            laidOut = false
+            if let manager = text.layoutManager {
+                let all = NSRange(location: 0, length: (lastBody as NSString).length)
+                manager.removeTemporaryAttribute(.foregroundColor, forCharacterRange: all)
+                manager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: all)
+            }
             highlightedRange = nil
-            needsLayout = true
+            dimmedLength = 0
+            if relayout { laidOut = false; needsLayout = true }
         }
         lastPreferences = preferences
         updateWordHighlight()
@@ -181,23 +217,35 @@ final class ReaderViewport: NSView {
         applyPosition()
     }
 
+    /// Voice mode: spoken text is dimmed, the current word sits on a light
+    /// box, and the text still to read keeps full brightness.
     private func updateWordHighlight() {
-        let range = lastPreferences?.mode == .voice ? session.activeWordRange : nil
+        let length = (lastBody as NSString).length
+        let range = lastPreferences?.mode == .voice ? session.activeWordRange.flatMap { NSMaxRange($0) <= length ? $0 : nil } : nil
         defer { session.didApplyWordHighlight(highlightedRange) }
         guard highlightedRange != range, let manager = text.layoutManager else { return }
+        // Temporary attributes never change glyph widths or text layout.
         if let old = highlightedRange {
             manager.removeTemporaryAttribute(.foregroundColor, forCharacterRange: old)
             manager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: old)
         }
-        if let range, NSMaxRange(range) <= (lastBody as NSString).length {
-            // Temporary attributes never change glyph widths or text layout.
+        let dimmed = min(range?.location ?? 0, length)
+        if dimmed > dimmedLength {
+            let color = (lastPreferences?.textColor ?? .white).nsColor.withAlphaComponent(ScriptStyle.spokenAlpha)
+            manager.addTemporaryAttribute(.foregroundColor, value: color, forCharacterRange: NSRange(location: dimmedLength, length: dimmed - dimmedLength))
+        } else if dimmed < dimmedLength {
+            manager.removeTemporaryAttribute(.foregroundColor, forCharacterRange: NSRange(location: dimmed, length: min(dimmedLength, length) - dimmed))
+        }
+        dimmedLength = dimmed
+        if let range {
             manager.addTemporaryAttributes([
-                .foregroundColor: NSColor.white,
-                .backgroundColor: NSColor(white: 0.14, alpha: 1)
+                .foregroundColor: (lastPreferences?.textColor ?? .white).nsColor,
+                .backgroundColor: NSColor(white: 0.2, alpha: 1)
             ], forCharacterRange: range)
         }
         highlightedRange = range
     }
+
 
     private func applyPosition() {
         if let character = session.jumpCharacter, laidOut, !lastBody.isEmpty, let manager = text.layoutManager {
