@@ -1,0 +1,130 @@
+name: Release
+
+# Pushing a tag vX.Y.Z on main builds, tests, signs and publishes the DMG as a
+# GitHub release with notes from CHANGELOG.md (docs/RELEASING.md).
+# Manual runs and pull requests that touch the release pipeline only build the
+# DMG as a workflow artifact; they never publish anything.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - scripts/package_release.sh
+      - scripts/release_notes.py
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      PUBLISH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag, version and release notes agree
+        if: env.PUBLISH == 'true'
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::Tag is not on main"; exit 1; }
+          python3 scripts/release_notes.py --check "$GITHUB_REF_NAME"
+
+      - name: Project file is up to date
+        run: |
+          python3 scripts/generate_project.py
+          git diff --exit-code -- MacPrompter.xcodeproj
+
+      - name: Build and test
+        if: env.PUBLISH == 'true'
+        run: scripts/check.sh
+
+      # Developer ID (with notarization) once the maintainer has an Apple Developer
+      # membership; until then the project's self-signed certificate keeps the
+      # signature stable across releases. Without secrets (e.g. forks) it signs ad hoc.
+      - name: Signing identity
+        env:
+          DEVELOPER_ID_P12: ${{ secrets.MACOS_DEVELOPER_ID_P12 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_P12_PASSWORD }}
+          SIGNING_P12: ${{ secrets.MACOS_SIGNING_P12 }}
+          SIGNING_P12_PASSWORD: ${{ secrets.MACOS_SIGNING_P12_PASSWORD }}
+        run: |
+          if [[ -n "$DEVELOPER_ID_P12" ]]; then p12="$DEVELOPER_ID_P12"; password="$DEVELOPER_ID_P12_PASSWORD"; kind=developer-id
+          elif [[ -n "$SIGNING_P12" ]]; then p12="$SIGNING_P12"; password="$SIGNING_P12_PASSWORD"; kind=self-signed
+          else echo "No signing secrets: ad hoc signature"; exit 0; fi
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          keychain_password="$(uuidgen)"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          echo "$p12" | base64 --decode >"$RUNNER_TEMP/identity.p12"
+          # macOS rejects the PBKDF2/AES containers OpenSSL 3 writes by default
+          # ("MAC verification failed"); re-wrap them with the classic algorithms.
+          export P12_PASSWORD="$password"
+          openssl pkcs12 -in "$RUNNER_TEMP/identity.p12" -passin env:P12_PASSWORD -nodes -out "$RUNNER_TEMP/identity.pem"
+          openssl pkcs12 -export -in "$RUNNER_TEMP/identity.pem" -out "$RUNNER_TEMP/identity.p12" -passout env:P12_PASSWORD \
+            -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES -macalg sha1
+          rm "$RUNNER_TEMP/identity.pem"
+          security import "$RUNNER_TEMP/identity.p12" -k "$keychain" -P "$password" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/identity.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          if [[ "$kind" == self-signed ]]; then
+            # codesign only uses trusted identities; the runner is discarded afterwards.
+            security find-certificate -a -p "$keychain" >"$RUNNER_TEMP/release.pem"
+            sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$RUNNER_TEMP/release.pem"
+          fi
+          identity="$(security find-identity -v -p codesigning "$keychain" | awk 'NR==1 { print $2 }')"
+          [[ -n "$identity" ]] || { echo "::error::No valid signing identity in the imported certificate"; exit 1; }
+          if [[ "$kind" == developer-id ]]; then echo "MACOS_DEVELOPER_ID=$identity" >>"$GITHUB_ENV"
+          else echo "MACOS_SIGN_IDENTITY=$identity" >>"$GITHUB_ENV"; fi
+
+      - name: Package DMG
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: |
+          scripts/package_release.sh
+          python3 scripts/release_notes.py --notes "$(cat build/release/signing.txt)" >build/release/notes.md || \
+            echo "No CHANGELOG section for this version yet (fine for test builds)" >build/release/notes.md
+
+      - name: Upload test build
+        if: env.PUBLISH != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macprompter-test-build
+          path: |
+            build/release/*.dmg
+            build/release/*.sha256
+            build/release/notes.md
+          retention-days: 7
+
+      - name: Publish GitHub release
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" build/release/macprompter-*.dmg build/release/macprompter-*.dmg.sha256 \
+            --verify-tag --title "macprompter $version" --notes-file build/release/notes.md
+
+      - name: Upload log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-logs
+          path: |
+            build/check.log
+            build/release/build.log
+          retention-days: 7

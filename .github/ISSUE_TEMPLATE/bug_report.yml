@@ -1,0 +1,52 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für die Meldung! Bitte keine privaten Skripttexte, Audioaufnahmen oder Tokens anhängen.
+        Sicherheitslücken bitte vertraulich melden (siehe SECURITY.md), nicht hier.
+  - type: textarea
+    id: what
+    attributes:
+      label: Was ist passiert?
+      description: Was hast du erwartet, was ist stattdessen passiert?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. Skript mit … anlegen
+        2. Modus Stimme, Take starten
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Betroffener Bereich
+      multiple: true
+      options: [Sprachsteuerung, Automatisch/Manuell scrollen, Overlay/Notch, Präsentation/PDF, Bibliothek/Editor, Einstellungen, iPhone-Fernbedienung, MCP/KI-Agenten, Installation/Update, Sonstiges]
+  - type: input
+    id: version
+    attributes:
+      label: macprompter-Version
+      description: Einstellungen → Über macprompter
+      placeholder: 1.0.0 (1)
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS-Version und Mac
+      placeholder: macOS 26.1, MacBook Pro M3
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Weitere Hinweise
+      description: Screenshots, Werte aus Einstellungen → Diagnose, Mikrofon, Bildschirm-Setup …

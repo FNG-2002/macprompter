@@ -1,0 +1,26 @@
+name: Idee vorschlagen
+description: Neue Funktion oder Verbesserung vorschlagen.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ob und wie eine Idee umgesetzt wird, entscheidet der Maintainer. Ideen, die gegen die Produktprinzipien
+        in AGENTS.md verstoßen (z. B. Cloud-Dienste, Telemetrie, Fremdpakete), werden nicht umgesetzt.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem soll gelöst werden?
+      description: In welcher Situation stört dich etwas oder fehlt dir etwas?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Deine Idee
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativen oder Beispiele aus anderen Apps

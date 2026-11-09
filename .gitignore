@@ -1,0 +1,12 @@
+.DS_Store
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+.build/
+*.xcresult
+.claude/settings.local.json
+MacPrompterRemote/Signing.local.xcconfig
+.claude/worktrees/
+MacPrompterTests/Fixtures/*.aiff

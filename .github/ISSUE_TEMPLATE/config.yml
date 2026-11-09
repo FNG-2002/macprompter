@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sicherheitslücke vertraulich melden
+    url: https://github.com/FNG-2002/macprompter/security/advisories/new
+    about: Bitte nicht öffentlich als Issue.
