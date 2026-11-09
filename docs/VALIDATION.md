@@ -260,3 +260,9 @@ Automatische Sprachumschaltung innerhalb eines Skripts, Sprechererkennung, indiv
 - Projektzertifikat mit `scripts/make_signing_identity.sh --replace` neu ausgestellt, im Anmelde-Schlüsselbund als gültige Code-Signing-Identität vorhanden.
 - `scripts/install.sh --quick` signiert mit „macprompter Release Signing“; ein Release-Probelauf auf GitHub erzeugt dieselbe Designated Requirement: `identifier "io.github.fng-2002.macprompter" and certificate leaf = H"910799…463f"`. Testversion und Release sind für macOS damit dieselbe App.
 - **Manuell offen:** Nach dem nächsten Wechsel zwischen Testversion und Release bestätigen, dass macOS nicht erneut nach Mikrofon, Eingabeüberwachung oder Containerzugriff fragt.
+
+## 1.0.0 mit dem neuen Zertifikat neu signiert · 09.11.2026
+
+- Auf Wunsch des Maintainers wurde die DMG von 1.0.0 einmalig ersetzt, damit das Release dasselbe Zertifikat trägt wie lokale Testversionen (ADR-28). Gebaut per manuellem Workflow-Lauf aus dem unveränderten Tag `v1.0.0` (`efe0777`); Code und Release-Notes sind gleich, nur die Signatur ist neu. Die alte DMG war zu diesem Zeitpunkt zweimal geladen worden, einmal davon bei der eigenen Prüfung.
+- Nach dem Austausch von GitHub geladen: Prüfsumme `80e5f9b5…0197e1` stimmt, Datei identisch mit dem geprüften Build, `Authority=macprompter Release Signing`, Designated Requirement gleich der installierten Testversion (`certificate leaf = H"910799…463f"`), ohne `get-task-allow`.
+- Ausnahme von der Regel in docs/RELEASING.md; künftige Korrekturen erscheinen wieder als neue Version.
