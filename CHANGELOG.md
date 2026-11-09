@@ -4,6 +4,9 @@ Alle nennenswerten Änderungen. Format nach [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Geändert
+- Entwicklung: Lokale Testversionen (`scripts/install.sh`) werden mit demselben Projektzertifikat signiert wie die Releases. Testversion und Release ersetzen sich gegenseitig, ohne dass macOS erneut nach Mikrofon oder Eingabeüberwachung fragt. Das Zertifikat wurde dafür neu ausgestellt; wer 1.0.0 installiert hat, bestätigt die Freigaben beim nächsten Update einmal neu.
+
 ## [1.0.0] – 2026-11-09
 
 Die erste öffentliche Version: macprompter ist jetzt Open Source unter der MIT-Lizenz und als fertige App zum Herunterladen verfügbar. Gegenüber dem internen Stand 0.1.0 folgt die Sprachsteuerung deutlich schneller und genauer, dazu kommen PDF-Präsentationen mit automatischem Folienwechsel, Vorlagen, die iPhone-Fernbedienung (zum Selbstbauen), ein lokaler Zugang für KI-Assistenten und das Scrollrad als Steuerung in allen Modi.

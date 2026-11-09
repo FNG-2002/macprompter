@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Local install of the verified Release build into /Applications.
-# Signs with an "Apple Development" identity when one is available: macOS then
-# ties privacy grants (Input Monitoring, microphone) to the certificate instead
-# of the exact build, so they survive updates. Without one it stays ad hoc.
+# Signs with the project certificate "macprompter Release Signing" when it is in the
+# keychain (scripts/make_signing_identity.sh), else with an "Apple Development" identity,
+# else ad hoc. macOS ties privacy grants (Input Monitoring, microphone) to the certificate
+# instead of the exact build, so they survive updates.
 #   scripts/install.sh                          check.sh --release, then install
 #   scripts/install.sh --quick                  Release build only, for a quick test version
 #   MACPROMPTER_SIGN_IDENTITY=- scripts/install.sh   force ad hoc
@@ -29,7 +30,11 @@ staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT
 ditto "$built" "$staging/macprompter.app"
 
-identity="${MACPROMPTER_SIGN_IDENTITY:-$(security find-identity -v -p codesigning | awk -F'"' '/Apple Development/ { print $2; exit }')}"
+# Prefer the project certificate: same signature as the GitHub releases, so test builds
+# and releases replace each other without new permission prompts (docs/RELEASING.md).
+identities="$(security find-identity -v -p codesigning)"
+identity="${MACPROMPTER_SIGN_IDENTITY:-$(awk '/"macprompter Release Signing"/ { print $2; exit }' <<<"$identities")}"
+[[ -n "$identity" ]] || identity="$(awk -F'"' '/Apple Development/ { print $2; exit }' <<<"$identities")"
 if [[ -n "$identity" && "$identity" != "-" ]]; then
     # Nested helpers first (own sandbox and entitlements), then the app that seals them.
     for helper in "$staging/macprompter.app/Contents/Helpers/"*; do
@@ -40,7 +45,7 @@ if [[ -n "$identity" && "$identity" != "-" ]]; then
     codesign -d --entitlements - --xml "$built" >"$staging/entitlements.plist" 2>/dev/null
     codesign --force --options runtime --timestamp=none --entitlements "$staging/entitlements.plist" \
         --sign "$identity" "$staging/macprompter.app"
-    echo "SIGNED: $identity"
+    echo "SIGNED: $(codesign -dvv "$staging/macprompter.app" 2>&1 | awk -F= '/^Authority/ { print $2; exit }')"
 else
     echo "SIGNED: ad hoc (privacy grants must be renewed after each install)"
 fi
