@@ -65,7 +65,7 @@ Mehrere unabhängige Anforderungen → getrennte Branches/PRs. Niemals `git push
 - **Stil:** an den umgebenden Code anpassen – kompakt, wenige Kommentare, und wenn, dann das *Warum*. Keine neuen Abstraktionsebenen ohne Anlass.
 - **Tests:** XCTest in `MacPrompterTests` mit der App als Test-Host. Zeitabhängige Logik über injizierte `dt`/Zeitstempel deterministisch testen (`advanceReading(by:)`, `receiveTranscript`). Tests mit Systemmodellen (`SpeechIntegrationTests`, echte `NLEmbedding`-Modelle) überspringen sich per `XCTSkip`, wenn das Modell fehlt. Zeitgrenzen in Debug-Tests großzügig wählen.
 - **Benchmarks** liegen in `scripts/Benchmark*.swift` und werden mit `swiftc -O` direkt gegen die Core-Dateien gebaut (Aufruf jeweils in der Fachdoku). Bei Performance-Änderungen vorher/nachher mit derselben Toolchain messen.
-- **Signatur:** lokal ad-hoc (`CODE_SIGN_IDENTITY = -`), Sandbox + Hardened Runtime aktiv. `scripts/install.sh` signiert nur die nach `/Applications` installierte Kopie mit einem vorhandenen „Apple Development“-Zertifikat neu (ADR-15).
+- **Signatur:** lokal ad-hoc (`CODE_SIGN_IDENTITY = -`), Sandbox + Hardened Runtime aktiv. `scripts/install.sh` signiert nur die nach `/Applications` installierte Kopie neu: bevorzugt mit dem Projektzertifikat „macprompter Release Signing“ aus dem Schlüsselbund (gleiche Signatur wie die Releases, ADR-28), sonst „Apple Development“ (ADR-15). Es gibt nur eine installierte App; Testversionen ersetzen das Release und umgekehrt.
 
 ## 5. Repo-Karte
 

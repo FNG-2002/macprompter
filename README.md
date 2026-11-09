@@ -103,7 +103,7 @@ open MacPrompter.xcodeproj       # Schema „macprompter“, Ziel „My Mac“
 scripts/install.sh               # geprüfte Release-Version nach /Applications
 ```
 
-`scripts/install.sh` signiert mit einem vorhandenen „Apple Development“-Zertifikat, damit Freigaben Updates überstehen; sonst ad hoc. `scripts/check.sh` erzeugt vorher die Testaudios mit den macOS-Stimmen (`scripts/make_fixtures.sh`); in Xcode direkt testen erst danach. Nach neuen oder gelöschten Dateien `python3 scripts/generate_project.py` ausführen; das Xcode-Projekt wird generiert.
+`scripts/install.sh` signiert mit dem Projektzertifikat, falls es im Schlüsselbund liegt (nur beim Maintainer, dann identisch mit den Releases), sonst mit einem vorhandenen „Apple Development“-Zertifikat, damit Freigaben Updates überstehen, sonst ad hoc. `scripts/check.sh` erzeugt vorher die Testaudios mit den macOS-Stimmen (`scripts/make_fixtures.sh`); in Xcode direkt testen erst danach. Nach neuen oder gelöschten Dateien `python3 scripts/generate_project.py` ausführen; das Xcode-Projekt wird generiert.
 
 **iPhone-App:** Schema „macprompter Remote“. Für ein echtes Gerät `MacPrompterRemote/Signing.local.xcconfig` mit `DEVELOPMENT_TEAM = <Team-ID>`, `CODE_SIGN_STYLE = Automatic` und `CODE_SIGN_IDENTITY = Apple Development` anlegen (bei Bedarf eigene `PRODUCT_BUNDLE_IDENTIFIER`). Details: [docs/REMOTE.md](docs/REMOTE.md).
 
