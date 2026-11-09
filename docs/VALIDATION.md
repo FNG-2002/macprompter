@@ -254,3 +254,9 @@ Automatische Sprachumschaltung innerhalb eines Skripts, Sprechererkennung, indiv
 
 - Kennungen auf `io.github.fng-2002.macprompter` umgestellt, Name des Maintainers aus Code, Doku und Lizenz entfernt (ADR-27). Die Vokabular-Tests nutzen jetzt erfundene Namen. 239 Tests bestanden, `scripts/check.sh --release` erfolgreich.
 - Übernahme der Bibliothek des Maintainers: alle fünf Skripte per MCP als `.macprompter`-Dateien exportiert (Präsentation mit 31 Folien samt PDF und Einstellungen pro Skript), neue Version installiert, Dateien geöffnet; die Bibliothek zeigt danach alle fünf Skripte. Globale Einstellungen (Bildschirm, Spiegelung, Countdown), iPhone-Kopplung und MCP-Ordner sind neu einzustellen; der alte Container bleibt unverändert als Sicherung.
+
+## Eine Signatur für Testversionen und Releases · 09.11.2026
+
+- Projektzertifikat mit `scripts/make_signing_identity.sh --replace` neu ausgestellt, im Anmelde-Schlüsselbund als gültige Code-Signing-Identität vorhanden.
+- `scripts/install.sh --quick` signiert mit „macprompter Release Signing“; ein Release-Probelauf auf GitHub erzeugt dieselbe Designated Requirement: `identifier "io.github.fng-2002.macprompter" and certificate leaf = H"910799…463f"`. Testversion und Release sind für macOS damit dieselbe App.
+- **Manuell offen:** Nach dem nächsten Wechsel zwischen Testversion und Release bestätigen, dass macOS nicht erneut nach Mikrofon, Eingabeüberwachung oder Containerzugriff fragt.
