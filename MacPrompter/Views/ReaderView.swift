@@ -27,6 +27,10 @@ extension ReadingColor {
 enum ScriptStyle {
     /// Voice mode: brightness of text that was already spoken.
     static let spokenAlpha = 0.38
+    /// Voice mode: the current word as a highlighter mark, dark text on the
+    /// app's accent, readable with every text colour.
+    static let currentWordBackground = NSColor(srgbRed: 0.72, green: 0.67, blue: 1, alpha: 1)
+    static let currentWordText = NSColor(white: 0.05, alpha: 1)
 
     static func attributed(_ text: String, font: NSFont, spacing: Double, color: NSColor = .white) -> NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
@@ -48,7 +52,7 @@ enum ScriptStyle {
         if p.mode == .voice, words.count > 8 {
             let current = words[5].range
             result.addAttribute(.foregroundColor, value: color.withAlphaComponent(spokenAlpha), range: NSRange(location: 0, length: current.location))
-            result.addAttribute(.backgroundColor, value: NSColor(white: 0.2, alpha: 1), range: current)
+            result.addAttributes([.backgroundColor: currentWordBackground, .foregroundColor: currentWordText], range: current)
         }
         return result
     }
@@ -217,8 +221,8 @@ final class ReaderViewport: NSView {
         applyPosition()
     }
 
-    /// Voice mode: spoken text is dimmed, the current word sits on a light
-    /// box, and the text still to read keeps full brightness.
+    /// Voice mode: spoken text is dimmed, the current word is marked like a
+    /// highlighter, and the text still to read keeps full brightness.
     private func updateWordHighlight() {
         let length = (lastBody as NSString).length
         let range = lastPreferences?.mode == .voice ? session.activeWordRange.flatMap { NSMaxRange($0) <= length ? $0 : nil } : nil
@@ -239,8 +243,8 @@ final class ReaderViewport: NSView {
         dimmedLength = dimmed
         if let range {
             manager.addTemporaryAttributes([
-                .foregroundColor: (lastPreferences?.textColor ?? .white).nsColor,
-                .backgroundColor: NSColor(white: 0.2, alpha: 1)
+                .foregroundColor: ScriptStyle.currentWordText,
+                .backgroundColor: ScriptStyle.currentWordBackground
             ], forCharacterRange: range)
         }
         highlightedRange = range

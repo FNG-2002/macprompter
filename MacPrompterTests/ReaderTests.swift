@@ -133,8 +133,8 @@ final class ReaderTests: XCTestCase {
             (manager.temporaryAttribute(.foregroundColor, atCharacterIndex: index, effectiveRange: nil) as? NSColor).map { Double($0.alphaComponent) }
         }
         func boxed(_ index: Int) -> Bool { manager.temporaryAttribute(.backgroundColor, atCharacterIndex: index, effectiveRange: nil) != nil }
-        XCTAssertEqual(alpha(at: 6), 1)
-        XCTAssertTrue(boxed(6))
+        XCTAssertEqual(manager.temporaryAttribute(.foregroundColor, atCharacterIndex: 6, effectiveRange: nil) as? NSColor, ScriptStyle.currentWordText)
+        XCTAssertEqual(manager.temporaryAttribute(.backgroundColor, atCharacterIndex: 6, effectiveRange: nil) as? NSColor, ScriptStyle.currentWordBackground)
         XCTAssertEqual(alpha(at: 0) ?? 0, ScriptStyle.spokenAlpha, accuracy: 0.001, "spoken text is dimmed")
         XCTAssertNil(alpha(at: 12), "text still to read keeps its full colour")
         session.receiveTranscript("Hello brave world", segment: 0, endTime: 2)
