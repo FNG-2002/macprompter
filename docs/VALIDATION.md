@@ -35,13 +35,15 @@ Die XCTest-Suite prüft Skriptparser, Wortausrichtung, Hover-/Countdown-Sperren,
 ## Auf einem echten Mac prüfen
 
 - **Release-DMG:** DMG von der Release-Seite laden, Prüfsumme vergleichen, nach „Programme“ ziehen, ersten Start über „Dennoch öffnen“ bestätigen. Mikrofon und Eingabeüberwachung freigeben, danach die nächste Version darüber installieren: Freigaben und Skripte müssen erhalten bleiben, ohne Frage nach dem Containerzugriff.
+- **Weitere Sprachen:** Ein Skript in einer anderen Sprache (z. B. Türkisch, Französisch) anlegen, den Sprachvorschlag übernehmen, Modell laden lassen und einen Take sprechen.
+- **Vorgezogene Markierung:** Normal lesen: Die Markierung liegt auf dem gesprochenen Wort. Mitten im Satz innehalten: sie bleibt stehen. Frei reden: höchstens zwei Wörter weiter, dann Stillstand. Nie Sprünge zurück.
 - **Sprache DE/EN:** Modus Stimme wählen, passende Skriptsprache setzen, Mikrofon freigeben und gegebenenfalls Modell laden lassen. Langsam/schnell lesen, schweigen, Wörter auslassen, mit Tastatur zurückgehen. Bei Stille nur noch sanftes Nachziehen bis zur bereits erkannten Zielzeile; danach Stillstand. Bei verweigerter Berechtigung verständliche Fehlermeldung; automatischer Modus bleibt nutzbar.
 - **Hover:** In allen drei Modi Maus über das Overlay bewegen. Text, Tastennavigation und Countdown müssen stehen bleiben; nur das Scrollrad bewegt den Text (seit 27.10.2026). Nach Verlassen kein Nachholen während Hover gesprochener Wörter. Explizite Pause darf nicht automatisch enden.
 - **Lebenszyklus:** Mikrofon während laufender Erkennung wechseln/abziehen; Hinweis statt Absturz. Ausblenden, Pausieren und Ruhezustand beenden den Audioeingang. Start während Modell-Download abbrechen; keine spätere Geisteraufnahme.
 - **Bildschirme:** Notch-MacBook, externes Display, Displays links/rechts/oberhalb, Spaces und Vollbild testen. Frei schwebendes Overlay verschieben. Display abziehen; Overlay muss erreichbar bleiben. Größe und Position nach Neustart prüfen.
 - **Aufnahme:** QuickTime / Screenshot-Toolbar, OBS Display Capture, Zoom, Teams, Google Meet jeweils mit Bildschirm- und Fensterfreigabe aufnehmen und die resultierende Datei bzw. Empfängersicht ansehen. Ausschluss kann variieren; keine universelle Garantie.
 - **Editor:** Import von TXT, UTF-8-Markdown und RTF; Texte mit Umlauten/Emoji/Cues; Undo/Redo; leeres Dokument; sehr langes Skript; App schließen und erneut öffnen.
-- **Lesbarkeit:** Alle drei Schriften, Größen, Zeilenabstände, Spiegelung und Fokuszeile kontrollieren. VoiceOver-Beschriftungen und Tastaturnavigation prüfen.
+- **Lesbarkeit:** Alle fünf Schriften, sechs Textfarben, Größen, Zeilenabstände, Spiegelung und Fokuszeile kontrollieren. VoiceOver-Beschriftungen und Tastaturnavigation prüfen.
 
 ## Noch nicht enthalten
 
@@ -266,3 +268,13 @@ Automatische Sprachumschaltung innerhalb eines Skripts, Sprechererkennung, indiv
 - Auf Wunsch des Maintainers wurde die DMG von 1.0.0 einmalig ersetzt, damit das Release dasselbe Zertifikat trägt wie lokale Testversionen (ADR-28). Gebaut per manuellem Workflow-Lauf aus dem unveränderten Tag `v1.0.0` (`efe0777`); Code und Release-Notes sind gleich, nur die Signatur ist neu. Die alte DMG war zu diesem Zeitpunkt zweimal geladen worden, einmal davon bei der eigenen Prüfung.
 - Nach dem Austausch von GitHub geladen: Prüfsumme `80e5f9b5…0197e1` stimmt, Datei identisch mit dem geprüften Build, `Authority=macprompter Release Signing`, Designated Requirement gleich der installierten Testversion (`certificate leaf = H"910799…463f"`), ohne `get-task-allow`.
 - Ausnahme von der Regel in docs/RELEASING.md; künftige Korrekturen erscheinen wieder als neue Version.
+
+## Erkenntnisse aus textream, Sprachen, Markierung und Update-Suche · 10.11.2026
+
+- Quellcode von textream (MIT) analysiert, kein Code übernommen (ADR-30): Dessen Erkennung darf über Apples Server laufen; das Weiterlaufen bei freier Rede kommt von der großzügigen Zuordnung. Übernommen wurden Ideen: mehr Sprachen (lokal), Sprachvorschlag, abgedunkelter gelesener Text, Schrift- und Größenkacheln, Textfarben, Einblendanimation.
+- Lokal unter macOS 27 / Xcode 27.1: 255 Tests bestanden, `scripts/check.sh --release` erfolgreich (neue Berechtigung `network.client`). Die Antwort der GitHub-API wurde mit dem echten Endpunkt abgeglichen (`v1.0.0`, nicht Entwurf, nicht Vorabversion); die Tests selbst verbinden sich nie mit GitHub.
+- `DictationTranscriber.supportedLocales` meldete 54 Varianten, davon nach Ausschluss von Japanisch, Chinesisch, Kantonesisch und Thai 48 angeboten. Installiert waren nur Deutsch und Englisch; andere Sprachen lädt macOS beim ersten Take.
+- Vom Maintainer in echten Takes mit der installierten Testversion geprüft: abgedunkelter Text und Kacheln („finde alles sehr gut“), Wortkasten nach zwei Runden („passt so“), vorgezogene Markierung („sehr viel besser“). Die lila Streifen wurden zusätzlich per Testbild geprüft.
+- Seitenleiste und Reader per Testbild aus einem unsichtbaren Fenster geprüft; das Flackern der Seitenleiste wurde gemessen (377 statt 360 pt) und ist mit Regressionstest abgedeckt; die Bestätigung in der App durch den Maintainer steht noch aus.
+- **Manuell offen:** Take in einer weiteren Sprache mit echtem Mikrofon; Update-Hinweis mit einem tatsächlich neueren Release (erst ab 1.2.0 möglich); Einblendanimation auf einem externen Display ohne Notch; Screenshots in `docs/media/` zeigen noch die Seitenleiste von 1.0.
+

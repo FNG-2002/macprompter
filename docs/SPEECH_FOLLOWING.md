@@ -61,6 +61,18 @@ Option unter Einstellungen → Lesen → Prompter, nur im Modus Stimme, standard
 
 Ein vorläufig markiertes nächstes Wort wurde ebenfalls ausprobiert und nach dem Test des Maintainers entfernt (ADR-19).
 
+## Markierung im Sprechtempo vorziehen (ADR-31)
+
+Option unter Einstellungen → Lesen → Prompter, nur im Modus Stimme, standardmäßig an. Sie ändert weder die Ausrichtung noch die Sprungregeln.
+
+- **Sprechposition** (`ReadingLead.advanceSpoken`): bestätigte Position plus Tempo × (Zeit seit der Bestätigung + 0,45 s Erkennungsverzögerung). Sie steigt nur, solange die Stimmaktivität Sprechen meldet, höchstens 0,9 s nach dem letzten bestätigten Wort, und nie über den Anfang des zweiten Worts nach dem zuletzt erkannten hinaus.
+- **Markierung** (`PrompterSession.predictHighlight`): springt auf das Wort, in das die Sprechposition hineinreicht. Liegt sie genau am Anfang des nächsten Worts (direkt nach einer Bestätigung in Stille), bleibt sie auf dem erkannten Wort.
+- **Nie zurück:** Meldet die Erkennung danach ein Wort, das die Markierung schon überholt hat, bleibt sie stehen. Nur ein Wiedereinstieg, Hover, Scrollen, Seek oder Zurücksetzen setzt sie neu. Abseits des Skripts bewegt sie sich nicht.
+
+## Sprachen (ADR-30)
+
+Angeboten werden alle Sprachen von `DictationTranscriber.supportedLocales` mit Leerzeichen zwischen Wörtern (`SpeechLanguage.available`). `SpeechLanguage` speichert die BCP-47-Kennung als Zeichenkette. Die Wortausrichtung ist sprachunabhängig; `LexicalBridge` gleicht Zahlwörter nur für Deutsch und Englisch an, die semantische Rückkehr arbeitet nur auf Deutsch und Englisch. Das Vokabular für das Diktat filtert mit dem Wortmodell der jeweiligen Sprache, ohne Wortmodell nimmt es die längsten Skriptwörter. Der Tokenizer zählt kombinierende Zeichen (`\p{M}`) zum Wort. Der Sprachvorschlag in der Seitenleiste nutzt `NLLanguageRecognizer` (mindestens 40 Buchstaben, Konfidenz ≥ 0,8, Regieanweisungen ausgenommen) und stellt nur per Klick um.
+
 ## Erkenner: Diktat mit Skriptvokabular (ADR-20)
 
 Erkannt wird immer mit `DictationTranscriber` (ADR-22); ohne Diktiermodell für die Sprache nimmt die App automatisch `SpeechTranscriber`. Das Diktiermodell liefert neue Wörter etwa alle 0,25 s statt alle 0,95 s. Es bekommt als `contextualStrings` die Skriptwörter, die nicht im Wortschatz von Apples Wortmodell (`NLEmbedding`) stehen oder Ziffern bzw. Großbuchstaben im Inneren haben, längste zuerst, höchstens 50 (`SpeechService.dictationVocabulary`). Jeder Eintrag kostet beim Start ~5,5 ms. Die Wortausrichtung ist für beide Erkenner dieselbe.
