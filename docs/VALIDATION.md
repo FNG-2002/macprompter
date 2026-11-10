@@ -283,4 +283,5 @@ Automatische Sprachumschaltung innerhalb eines Skripts, Sprechererkennung, indiv
 - Inhalt: PR #4 (Sprachen, vorgezogene Markierung, Update-Suche, Lesekomfort, Einblendanimation, Korrekturen). Version 1.1.0, Build 2.
 - Lokal unter macOS 27 / Xcode 27.1: 255 Tests bestanden, `scripts/check.sh --release` erfolgreich, `release_notes.py --check v1.1.0` erfolgreich. CI auf macOS 26 grün (Modelltests dort übersprungen).
 - **Manuell offen:** wie im Abschnitt vom 10.11.2026; zusätzlich nach Veröffentlichung DMG laden, Prüfsumme vergleichen, über 1.0.0 installieren und prüfen, dass Freigaben und Bibliothek erhalten bleiben und Hilfe → „Nach Updates suchen …“ „aktuell“ meldet.
+- Veröffentlicht am 10.11.2026 über den Tag `v1.1.0` (Workflow erfolgreich). DMG von GitHub geladen: Prüfsumme stimmt, `codesign --verify --strict --deep` erfolgreich, Version 1.1.0 (2), Designated Requirement identisch mit der installierten Version (`certificate leaf = H"910799…463f"`), Berechtigungen `network.client` und `network.server`, kein `get-task-allow`. Die GitHub-API meldet `v1.1.0` als neuestes Release.
 
