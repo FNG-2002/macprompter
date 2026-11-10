@@ -12,6 +12,7 @@ final class AppModel {
     let remote = RemoteServer()
     let mcp = MCPServer()
     let presenter = PresentationController()
+    let updates = UpdateChecker()
     @ObservationIgnored var presentationFiles: PresentationFiles
     /// Result of the last PDF update, shown in the slide editor.
     var presentationChange: (scriptID: UUID, change: PresentationChange)?
@@ -68,6 +69,8 @@ final class AppModel {
         observeSelection()
         setupRemoteControl()
         setupAgentAccess()
+        // The test host must not contact GitHub.
+        if !Self.isTestHost { updates.setEnabled(preferences.value.updateCheckEnabled) }
     }
 
     private func observePreferences() {
@@ -82,6 +85,7 @@ final class AppModel {
                 if old.scriptSettings != new.scriptSettings { self.library.setSettings(new.scriptSettings, for: self.library.selectedID) }
                 if old.scrollWheelAnywhere != new.scrollWheelAnywhere { self.overlay?.updateScrollMonitor() }
                 if old.remoteControlEnabled != new.remoteControlEnabled { self.remote.setEnabled(new.remoteControlEnabled) }
+                if old.updateCheckEnabled != new.updateCheckEnabled, !Self.isTestHost { self.updates.setEnabled(new.updateCheckEnabled) }
                 if old.mcpEnabled != new.mcpEnabled || old.mcpPort != new.mcpPort { self.mcp.configure(enabled: new.mcpEnabled, port: new.mcpPort) }
                 if old.width != new.width || old.height != new.height || old.docked != new.docked || old.displayID != new.displayID {
                     self.overlay?.reposition()
@@ -174,6 +178,23 @@ final class AppModel {
             guard response == .OK, let url = panel.url else { return }
             do { try script.body.write(to: url, atomically: true, encoding: .utf8) }
             catch { Task { @MainActor in self?.library.errorMessage = "Export fehlgeschlagen: \(error.localizedDescription)" } }
+        }
+    }
+
+    /// Help menu: check now and answer in a dialog.
+    func checkForUpdatesNow() async {
+        await updates.check(manual: true)
+        let alert = NSAlert()
+        alert.messageText = updates.message ?? ""
+        if let update = updates.available {
+            alert.informativeText = "Lade die neue Version von GitHub und installiere sie wie gewohnt. Skripte, Einstellungen und Freigaben bleiben erhalten."
+            alert.addButton(withTitle: "Zum Download")
+            alert.addButton(withTitle: "Später")
+            NSApp.activate()
+            if alert.runModal() == .alertFirstButtonReturn { NSWorkspace.shared.open(update.url) }
+        } else {
+            NSApp.activate()
+            alert.runModal()
         }
     }
 

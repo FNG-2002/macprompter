@@ -213,7 +213,7 @@ struct SettingsView: View {
             Text("Funktionieren auch in anderen Apps. Keine Bedienungshilfen-Freigabe nötig.").font(.caption).foregroundStyle(.secondary)
         }
         Section("Sprache") {
-            Text("Die Sprachsteuerung folgt dem Skript in Deutsch oder Englisch. Die Sprache legst du pro Skript fest. Das erste Starten kann ein Sprachmodell von Apple laden; die Erkennung selbst läuft lokal.").font(.callout)
+            Text("Die Sprachsteuerung folgt dem Skript in allen Sprachen, die Apples lokales Diktat auf deinem Mac anbietet, zum Beispiel Deutsch, Englisch, Französisch, Spanisch oder Türkisch. Die Sprache legst du pro Skript fest. Das erste Starten kann ein Sprachmodell von Apple laden; die Erkennung selbst läuft lokal.").font(.callout)
             Button("Mikrofon-Einstellungen öffnen") {
                 NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
             }
@@ -228,6 +228,7 @@ struct SettingsView: View {
         }
         Section("Deine Daten") {
             Label("Keine Konten. Keine Telemetrie. Keine Audio-Uploads.", systemImage: "lock.shield")
+            Text("Die einzige Verbindung ins Internet ist die Update-Suche: einmal am Tag fragt macprompter bei GitHub nach der neuesten Versionsnummer. Dabei erfährt GitHub deine IP-Adresse, aber nichts über deine Skripte oder deine Nutzung. Abschalten unter „Über macprompter“. Sprachmodelle lädt macOS selbst.").font(.caption).foregroundStyle(.secondary)
             Text("Skripte liegen lokal im Application-Support-Ordner. Mikrofon-Audio wird nur während der Sprachsteuerung verarbeitet und nicht gespeichert. Manuelles Pausieren und Ausblenden schalten das Mikrofon aus. Während Hover-Pausen bleibt es aktiv, damit die Erkennung sofort weitergehen kann.").font(.caption).foregroundStyle(.secondary)
             Button("Skriptordner im Finder öffnen") { NSWorkspace.shared.activateFileViewerSelecting([model.library.fileURL.deletingLastPathComponent()]) }
         }
@@ -238,8 +239,9 @@ struct SettingsView: View {
             Text("Deine Worte. Dein Tempo.").foregroundStyle(.secondary)
             Text("\(AppInfo.versionLabel()) · Für macOS 26 und neuer").font(.caption)
         }
+        UpdateSettingsSection(model: model)
         Section("Open Source") {
-            Text("macprompter ist Open Source unter der MIT-Lizenz. Updates gibt es auf GitHub; die App selbst prüft nicht online nach neuen Versionen.")
+            Text("macprompter ist Open Source unter der MIT-Lizenz.")
             Link("Quellcode auf GitHub", destination: AppInfo.repository)
             Link("Versionshinweise", destination: AppInfo.releases)
             Link("Problem melden", destination: AppInfo.newIssue)
@@ -254,6 +256,30 @@ struct SettingsView: View {
             }
             Text("Notch-Form nach macos-app-skills von Fayaz Ahmed · MIT-Lizenz")
             Button("Alle Lizenzen anzeigen") { NSApp.orderFrontStandardAboutPanel(nil); NSApp.activate() }
+        }
+    }
+}
+
+private struct UpdateSettingsSection: View {
+    @Bindable var model: AppModel
+    var body: some View {
+        Section("Updates") {
+            Toggle(isOn: $model.preferences.value.updateCheckEnabled) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Automatisch nach Updates suchen")
+                    Text("Einmal am Tag fragt macprompter bei GitHub nach der neuesten Versionsnummer. Gibt es eine neue Version, erscheint unten in der Bibliothek ein Hinweis. Installiert wird nichts automatisch; übertragen wird nur die Anfrage selbst, keine Daten über dich oder deine Skripte.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            HStack {
+                Button("Jetzt suchen") { Task { await model.updates.check(manual: true) } }.disabled(model.updates.isChecking)
+                if model.updates.isChecking { ProgressView().controlSize(.small) }
+                if let message = model.updates.message { Text(message).foregroundStyle(.secondary) }
+                Spacer()
+                if let update = model.updates.available {
+                    Link("Version \(update.version) laden", destination: update.url)
+                }
+            }
         }
     }
 }

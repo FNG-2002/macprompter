@@ -37,6 +37,7 @@ struct MacPrompterApp: App {
             CommandGroup(replacing: .help) {
                 Button("macprompter auf GitHub") { NSWorkspace.shared.open(AppInfo.repository) }
                 Button("Versionshinweise") { NSWorkspace.shared.open(AppInfo.releases) }
+                Button("Nach Updates suchen …") { Task { await model.checkForUpdatesNow() } }
                 Button("Problem melden …") { NSWorkspace.shared.open(AppInfo.newIssue) }
                 Divider()
                 Button("Lizenzen und Danksagungen") { NSApp.orderFrontStandardAboutPanel(nil); NSApp.activate() }
@@ -49,7 +50,8 @@ struct MacPrompterApp: App {
 }
 
 enum AppInfo {
-    // Opened in the browser only on request; the app itself never connects to these.
+    // Opened in the browser only on request. The app itself only asks GitHub's
+    // API for the latest version number (UpdateCheck, can be switched off).
     static let repository = URL(string: "https://github.com/FNG-2002/macprompter")!
     static let releases = repository.appending(path: "releases")
     static let newIssue = repository.appending(path: "issues/new/choose")

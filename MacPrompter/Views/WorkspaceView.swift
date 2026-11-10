@@ -185,6 +185,17 @@ struct WorkspaceView: View {
             if model.session.gate.isVisible {
                 Button("Ausblenden") { model.session.hide() }.buttonStyle(.plain).foregroundStyle(Design.accent)
             }
+            if let update = model.updates.notice, model.preferences.value.updateCheckEnabled {
+                HStack(spacing: 6) {
+                    Button { NSWorkspace.shared.open(update.url) } label: {
+                        Label("Version \(update.version) verfügbar", systemImage: "arrow.down.circle")
+                    }.buttonStyle(.plain).foregroundStyle(Design.accent).help("Neue Version auf GitHub laden")
+                    Button { model.updates.dismissedVersion = update.version } label: { Image(systemName: "xmark") }
+                        .buttonStyle(.plain).foregroundStyle(.tertiary).help("Hinweis ausblenden").accessibilityLabel("Update-Hinweis ausblenden")
+                }
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(Design.accent.opacity(0.12), in: Capsule())
+            }
             Button { showPrivacyInfo.toggle() } label: {
                 Image(systemName: "rectangle.slash").foregroundStyle(.orange.opacity(0.8))
             }

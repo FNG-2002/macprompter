@@ -106,6 +106,12 @@ struct Preferences: Codable, Equatable {
         get { readingColor ?? .white }
         set { readingColor = newValue }
     }
+    private var updateCheck: Bool?
+    /// Daily check for a newer release on GitHub (ADR-29); on by default.
+    var updateCheckEnabled: Bool {
+        get { updateCheck ?? true }
+        set { updateCheck = newValue }
+    }
     private var remoteEnabled: Bool?
     var remoteControlEnabled: Bool {
         get { remoteEnabled ?? false }
