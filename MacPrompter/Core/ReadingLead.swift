@@ -20,6 +20,11 @@ struct ReadingLead {
     private var confirmed: Double?
     private var confirmedAt = 0.0
     private(set) var estimate: Double?
+    /// Experimental highlight lead: where the speaker probably is now. Only
+    /// moves forward between confirmations; nil until the rate is known.
+    private(set) var spoken: Double?
+    /// A word is recognized about this long after it ended (median, ADR-20).
+    static let recognitionDelay = 0.45
 
     /// Characters per second over the last few seconds of continuous reading.
     var rate: Double? {
@@ -38,6 +43,16 @@ struct ReadingLead {
         samples.removeAll { time - $0.time > Self.window }
         confirmed = character; confirmedAt = time
         estimate = min(character + Self.maxLead, max(estimate ?? character, character))
+        spoken = jump ? character : max(spoken ?? character, character)
+    }
+
+    /// Moves the probable speaking position on at the speaking rate, shifted
+    /// by the recognition delay, at most `limit`. Stops in silence and when
+    /// no word was confirmed for `stallAfter`; never moves back.
+    mutating func advanceSpoken(now: Double, speaking: Bool, limit: Double) {
+        guard speaking, let confirmed, let rate, now - confirmedAt < Self.stallAfter else { return }
+        let probable = confirmed + rate * (now - confirmedAt + Self.recognitionDelay)
+        spoken = max(spoken ?? confirmed, min(limit, probable))
     }
 
     mutating func advance(by dt: Double, now: Double, speaking: Bool) {

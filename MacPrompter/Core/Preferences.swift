@@ -54,6 +54,13 @@ struct Preferences: Codable, Equatable {
         get { speechPacedScroll ?? false }
         set { speechPacedScroll = newValue }
     }
+    private var predictiveWord: Bool?
+    /// Experimental: voice mode moves the word highlight on at speaking pace,
+    /// at most two words past the last recognized word.
+    var predictiveHighlight: Bool {
+        get { predictiveWord ?? false }
+        set { predictiveWord = newValue }
+    }
     private var slidesDisplay: UInt32?
     private var presenterViewEnabled: Bool?
     /// Screen for the audience slides; 0 picks a screen other than the prompter's.
