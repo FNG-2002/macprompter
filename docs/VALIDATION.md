@@ -278,3 +278,9 @@ Automatische Sprachumschaltung innerhalb eines Skripts, Sprechererkennung, indiv
 - Seitenleiste und Reader per Testbild aus einem unsichtbaren Fenster geprüft; das Flackern der Seitenleiste wurde gemessen (377 statt 360 pt) und ist mit Regressionstest abgedeckt; die Bestätigung in der App durch den Maintainer steht noch aus.
 - **Manuell offen:** Take in einer weiteren Sprache mit echtem Mikrofon; Update-Hinweis mit einem tatsächlich neueren Release (erst ab 1.2.0 möglich); Einblendanimation auf einem externen Display ohne Notch; Screenshots in `docs/media/` zeigen noch die Seitenleiste von 1.0.
 
+## Release 1.1.0 · 10.11.2026
+
+- Inhalt: PR #4 (Sprachen, vorgezogene Markierung, Update-Suche, Lesekomfort, Einblendanimation, Korrekturen). Version 1.1.0, Build 2.
+- Lokal unter macOS 27 / Xcode 27.1: 255 Tests bestanden, `scripts/check.sh --release` erfolgreich, `release_notes.py --check v1.1.0` erfolgreich. CI auf macOS 26 grün (Modelltests dort übersprungen).
+- **Manuell offen:** wie im Abschnitt vom 10.11.2026; zusätzlich nach Veröffentlichung DMG laden, Prüfsumme vergleichen, über 1.0.0 installieren und prüfen, dass Freigaben und Bibliothek erhalten bleiben und Hilfe → „Nach Updates suchen …“ „aktuell“ meldet.
+
