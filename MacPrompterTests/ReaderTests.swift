@@ -133,7 +133,8 @@ final class ReaderTests: XCTestCase {
             (manager.temporaryAttribute(.foregroundColor, atCharacterIndex: index, effectiveRange: nil) as? NSColor).map { Double($0.alphaComponent) }
         }
         func boxed(_ index: Int) -> Bool { manager.temporaryAttribute(.backgroundColor, atCharacterIndex: index, effectiveRange: nil) != nil }
-        XCTAssertEqual(manager.temporaryAttribute(.foregroundColor, atCharacterIndex: 6, effectiveRange: nil) as? NSColor, ScriptStyle.currentWordText)
+        XCTAssertTrue(manager is WordBoxLayoutManager)
+        XCTAssertEqual(alpha(at: 6), 1, "the current word keeps the text colour")
         XCTAssertEqual(manager.temporaryAttribute(.backgroundColor, atCharacterIndex: 6, effectiveRange: nil) as? NSColor, ScriptStyle.currentWordBackground)
         XCTAssertEqual(alpha(at: 0) ?? 0, ScriptStyle.spokenAlpha, accuracy: 0.001, "spoken text is dimmed")
         XCTAssertNil(alpha(at: 12), "text still to read keeps its full colour")
@@ -148,6 +149,16 @@ final class ReaderTests: XCTestCase {
         XCTAssertNil(alpha(at: 0), "going back restores the full colour")
         XCTAssertNil(alpha(at: 12))
         session.hide()
+    }
+
+    /// Regression: the default box filled the line spacing and left purple
+    /// slivers in the next line while speaking.
+    func testWordBoxStaysWithinTheTextLine() {
+        let box = WordBoxLayoutManager.box(for: CGRect(x: 10, y: 40, width: 50, height: 46), lineSpacing: 12)
+        XCTAssertEqual(box.minY, 40)
+        XCTAssertEqual(box.height, 34)
+        XCTAssertEqual(box.minX, 10 - WordBoxLayoutManager.horizontalPadding)
+        XCTAssertEqual(box.width, 50 + 2 * WordBoxLayoutManager.horizontalPadding)
     }
 
     func testFontsAndTextColourChangeTheReader() throws {

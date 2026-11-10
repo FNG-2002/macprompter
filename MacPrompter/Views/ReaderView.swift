@@ -27,10 +27,9 @@ extension ReadingColor {
 enum ScriptStyle {
     /// Voice mode: brightness of text that was already spoken.
     static let spokenAlpha = 0.38
-    /// Voice mode: the current word as a highlighter mark, dark text on the
-    /// app's accent, readable with every text colour.
-    static let currentWordBackground = NSColor(srgbRed: 0.72, green: 0.67, blue: 1, alpha: 1)
-    static let currentWordText = NSColor(white: 0.05, alpha: 1)
+    /// Voice mode: the current word on a translucent box in the app's accent;
+    /// the word keeps the text colour.
+    static let currentWordBackground = NSColor(srgbRed: 0.72, green: 0.67, blue: 1, alpha: 0.4)
 
     static func attributed(_ text: String, font: NSFont, spacing: Double, color: NSColor = .white) -> NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
@@ -52,7 +51,7 @@ enum ScriptStyle {
         if p.mode == .voice, words.count > 8 {
             let current = words[5].range
             result.addAttribute(.foregroundColor, value: color.withAlphaComponent(spokenAlpha), range: NSRange(location: 0, length: current.location))
-            result.addAttributes([.backgroundColor: currentWordBackground, .foregroundColor: currentWordText], range: current)
+            result.addAttribute(.backgroundColor, value: currentWordBackground, range: current)
         }
         return result
     }
@@ -86,7 +85,12 @@ private struct ReaderBridge: NSViewRepresentable {
 
 final class ReaderViewport: NSView {
     private let clip = NSClipView()
-    private let text = NSTextView()
+    private let text: NSTextView = {
+        // TextKit 1 with a layout manager that draws the word box itself.
+        let storage = NSTextStorage(), manager = WordBoxLayoutManager(), container = NSTextContainer()
+        storage.addLayoutManager(manager); manager.addTextContainer(container)
+        return NSTextView(frame: .zero, textContainer: container)
+    }()
     private let session: PrompterSession
     private var lastBody = ""
     private var lastPreferences: Preferences?
@@ -232,6 +236,7 @@ final class ReaderViewport: NSView {
         if let old = highlightedRange {
             manager.removeTemporaryAttribute(.foregroundColor, forCharacterRange: old)
             manager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: old)
+            redrawLines(of: old)
         }
         let dimmed = min(range?.location ?? 0, length)
         if dimmed > dimmedLength {
@@ -243,11 +248,25 @@ final class ReaderViewport: NSView {
         dimmedLength = dimmed
         if let range {
             manager.addTemporaryAttributes([
-                .foregroundColor: ScriptStyle.currentWordText,
+                .foregroundColor: (lastPreferences?.textColor ?? .white).nsColor,
                 .backgroundColor: ScriptStyle.currentWordBackground
             ], forCharacterRange: range)
+            redrawLines(of: range)
         }
         highlightedRange = range
+    }
+
+    /// The box reaches a little beyond the glyphs; redraw whole lines so no
+    /// edge of the previous box stays on screen.
+    private func redrawLines(of range: NSRange) {
+        guard let manager = text.layoutManager, let container = text.textContainer else { return }
+        let glyphs = manager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        guard glyphs.length > 0 else { return }
+        let first = manager.lineFragmentRect(forGlyphAt: glyphs.location, effectiveRange: nil)
+        let last = manager.lineFragmentRect(forGlyphAt: NSMaxRange(glyphs) - 1, effectiveRange: nil)
+        var rect = first.union(last).offsetBy(dx: text.textContainerOrigin.x, dy: text.textContainerOrigin.y)
+        rect.origin.x = 0; rect.size.width = max(text.bounds.width, container.size.width + 24)
+        text.setNeedsDisplay(rect.insetBy(dx: 0, dy: -4))
     }
 
 
@@ -318,6 +337,29 @@ final class ReaderViewport: NSView {
         let glyph = manager.glyphIndex(for: CGPoint(x: 0, y: session.offset + 12), in: container)
         if glyph < manager.numberOfGlyphs { session.seekVoice(to: manager.characterIndexForGlyph(at: glyph)) }
         reportReadingPosition(manual: true)
+    }
+}
+
+/// Draws background highlights as rounded boxes the height of the text,
+/// without the line spacing below. TextKit's default box fills the whole
+/// line fragment and runs into the next line.
+final class WordBoxLayoutManager: NSLayoutManager {
+    static let horizontalPadding = 3.0
+
+    static func box(for rect: CGRect, lineSpacing: Double) -> CGRect {
+        var box = rect
+        box.size.height = max(1, rect.height - lineSpacing)
+        return box.insetBy(dx: -horizontalPadding, dy: 0)
+    }
+
+    override func fillBackgroundRectArray(_ rectArray: UnsafePointer<NSRect>, count rectCount: Int, forCharacterRange charRange: NSRange, color: NSColor) {
+        let spacing = charRange.location < (textStorage?.length ?? 0)
+            ? (textStorage?.attribute(.paragraphStyle, at: charRange.location, effectiveRange: nil) as? NSParagraphStyle)?.lineSpacing ?? 0 : 0
+        color.setFill()
+        for index in 0..<rectCount {
+            let box = Self.box(for: rectArray[index], lineSpacing: spacing)
+            NSBezierPath(roundedRect: box, xRadius: 5, yRadius: 5).fill()
+        }
     }
 }
 
