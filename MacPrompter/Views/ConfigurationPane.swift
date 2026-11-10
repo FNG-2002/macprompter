@@ -57,7 +57,12 @@ struct ConfigurationPane: View {
                     HStack { Text("Weitere Einstellungen"); Spacer(); Image(systemName: "arrow.up.right") }
                 }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(.horizontal, 24).padding(.top, 26).padding(.bottom, 32)
-        }.background(Design.surface.opacity(0.32))
+        }
+        // With always-visible scroll bars (mouse attached) SwiftUI briefly
+        // measured the content without the scroller whenever it changed, and
+        // the pane widened by the scroller's width for a moment.
+        .scrollIndicators(.never)
+        .background(Design.surface.opacity(0.32))
     }
 
     private var modeDescription: String {

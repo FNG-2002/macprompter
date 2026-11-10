@@ -151,6 +151,27 @@ final class ReaderTests: XCTestCase {
         session.hide()
     }
 
+    /// Regression: with always-visible scroll bars the side pane widened by
+    /// the scroller for a moment whenever the mode changed its content.
+    func testSidePaneKeepsItsWidthWhenTheModeChanges() {
+        let model = AppModel.shared
+        let original = model.preferences.value
+        defer { model.preferences.value = original }
+        let window = NSWindow(contentRect: NSRect(x: -4000, y: 0, width: 360, height: 800), styleMask: [.borderless], backing: .buffered, defer: false)
+        let host = NSHostingView(rootView: ConfigurationPane(model: model).frame(width: 360))
+        window.contentView = host
+        window.orderFrontRegardless()
+        defer { window.orderOut(nil) }
+        func scrollViews(_ view: NSView) -> [NSScrollView] { (view as? NSScrollView).map { [$0] } ?? [] + view.subviews.flatMap(scrollViews) }
+        for mode in [PlaybackMode.voice, .automatic, .manual, .voice] {
+            model.preferences.value.mode = mode
+            for _ in 0..<6 {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.04))
+                for scroll in scrollViews(host) { XCTAssertEqual(scroll.frame.width, 360, "\(mode)") }
+            }
+        }
+    }
+
     /// Regression: the default box filled the line spacing and left purple
     /// slivers in the next line while speaking.
     func testWordBoxStaysWithinTheTextLine() {
