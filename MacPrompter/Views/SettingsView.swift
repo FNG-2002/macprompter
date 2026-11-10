@@ -165,7 +165,16 @@ struct SettingsView: View {
                 }
             }
                 .accessibilityLabel("Im Sprechtempo scrollen")
-                .accessibilityHint("Bewegt den Text im Modus Stimme gleichmäßig statt zeilenweise; die Markierung bleibt auf erkannten Wörtern.")
+                .accessibilityHint("Bewegt den Text im Modus Stimme gleichmäßig statt zeilenweise.")
+            Toggle(isOn: $model.preferences.value.predictiveHighlight) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Markierung im Sprechtempo vorziehen")
+                    Text("Nur im Modus Stimme: Die Markierung läuft in deinem Tempo mit, damit sie auf dem Wort liegt, das du gerade sagst, statt auf das Erkennen zu warten. Höchstens zwei Wörter voraus; bei Stille oder wenn du vom Skript abweichst, bleibt sie stehen.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+                .accessibilityLabel("Markierung im Sprechtempo vorziehen")
+                .accessibilityHint("Die Wortmarkierung im Modus Stimme läuft bis zu zwei Wörter vor dem zuletzt erkannten Wort.")
             DisplayPicker(model: model)
         }
     }

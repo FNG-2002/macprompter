@@ -15,9 +15,6 @@ struct ConfigurationPane: View {
                     Text(modeDescription).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     if model.preferences.value.mode == .voice {
                         SpeechLanguagePicker(model: model)
-                        Toggle("Markierung im Sprechtempo vorziehen (Test)", isOn: $model.preferences.value.predictiveHighlight)
-                            .toggleStyle(.switch).controlSize(.mini)
-                            .help("Experimentell: Die Markierung läuft während du sprichst bis zu zwei Wörter vor dem zuletzt erkannten Wort, damit sie auf dem Wort liegt, das du gerade sagst.")
                         Label("Lokale Spracherkennung", systemImage: "lock").font(.system(size: 11)).foregroundStyle(Design.accent)
                     }
                     if model.preferences.value.mode == .automatic {

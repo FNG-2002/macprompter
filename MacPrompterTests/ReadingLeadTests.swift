@@ -160,6 +160,9 @@ final class ReadingLeadTests: XCTestCase {
         let plain = run(enabled: false)
         XCTAssertEqual(plain.ahead, 4, "off: the highlight stays on recognized words")
         XCTAssertEqual(plain.afterLateWord, 5)
+        XCTAssertTrue(Preferences().predictiveHighlight, "on unless switched off")
+        let stored = try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(Preferences()))
+        XCTAssertTrue(stored.predictiveHighlight, "older preferences get it too")
     }
 
     @MainActor

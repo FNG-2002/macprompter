@@ -55,10 +55,10 @@ struct Preferences: Codable, Equatable {
         set { speechPacedScroll = newValue }
     }
     private var predictiveWord: Bool?
-    /// Experimental: voice mode moves the word highlight on at speaking pace,
-    /// at most two words past the last recognized word.
+    /// Voice mode moves the word highlight on at speaking pace, at most two
+    /// words past the last recognized word. On unless switched off.
     var predictiveHighlight: Bool {
-        get { predictiveWord ?? false }
+        get { predictiveWord ?? true }
         set { predictiveWord = newValue }
     }
     private var slidesDisplay: UInt32?

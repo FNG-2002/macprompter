@@ -447,9 +447,10 @@ final class PrompterSession {
         guard last > recognized else { return }
         lead.advanceSpoken(now: voiceClock, speaking: speaking, limit: Double(tokens[last].range.location))
         guard let spoken = lead.spoken else { return }
-        // The word whose start the speaker has reached.
+        // The word the speaker has started; in silence right after a
+        // recognized word the estimate sits exactly at the next word's start.
         var index = recognized
-        while index < last, Double(tokens[index + 1].range.location) <= spoken { index += 1 }
+        while index < last, Double(tokens[index + 1].range.location) < spoken { index += 1 }
         guard index > max(recognized, predictedWordIndex ?? recognized) else { return }
         predictedWordIndex = index
         activeWordRange = tokens[index].range
