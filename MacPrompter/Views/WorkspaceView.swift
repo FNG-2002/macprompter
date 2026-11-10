@@ -91,7 +91,7 @@ struct WorkspaceView: View {
                         Image(systemName: script.presentation == nil ? "doc.text" : "rectangle.on.rectangle").font(.system(size: 16)).foregroundStyle(model.library.selectedID == script.id ? Design.accent : .gray).padding(.top, 3)
                         VStack(alignment: .leading, spacing: 5) {
                             Text(script.title.isEmpty ? "Ohne Titel" : script.title).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                            Text((script.presentation.map { deck in "\(deck.sections.filter { !$0.pageIDs.isEmpty }.count) Folien · " } ?? "") + "\(ScriptParser.words(in: script.body).count) Wörter · \(script.language.title)").font(.system(size: 10)).foregroundStyle(.secondary)
+                            Text((script.presentation.map { deck in "\(deck.sections.filter { !$0.pageIDs.isEmpty }.count) Folien · " } ?? "") + "\(ScriptParser.words(in: script.body).count) Wörter · \(script.language.shortTitle)").font(.system(size: 10)).foregroundStyle(.secondary)
                         }
                     }.padding(.vertical, 7).tag(script.id)
                 }
@@ -184,6 +184,17 @@ struct WorkspaceView: View {
             Spacer()
             if model.session.gate.isVisible {
                 Button("Ausblenden") { model.session.hide() }.buttonStyle(.plain).foregroundStyle(Design.accent)
+            }
+            if let update = model.updates.notice, model.preferences.value.updateCheckEnabled {
+                HStack(spacing: 6) {
+                    Button { NSWorkspace.shared.open(update.url) } label: {
+                        Label("Version \(update.version) verfügbar", systemImage: "arrow.down.circle")
+                    }.buttonStyle(.plain).foregroundStyle(Design.accent).help("Neue Version auf GitHub laden")
+                    Button { model.updates.dismissedVersion = update.version } label: { Image(systemName: "xmark") }
+                        .buttonStyle(.plain).foregroundStyle(.tertiary).help("Hinweis ausblenden").accessibilityLabel("Update-Hinweis ausblenden")
+                }
+                .padding(.horizontal, 9).padding(.vertical, 4)
+                .background(Design.accent.opacity(0.12), in: Capsule())
             }
             Button { showPrivacyInfo.toggle() } label: {
                 Image(systemName: "rectangle.slash").foregroundStyle(.orange.opacity(0.8))

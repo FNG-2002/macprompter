@@ -14,9 +14,7 @@ struct ConfigurationPane: View {
                     }.pickerStyle(.segmented).labelsHidden().controlSize(.large)
                     Text(modeDescription).font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     if model.preferences.value.mode == .voice {
-                        Picker("Sprache", selection: Binding(get: { model.library.selected?.language ?? .german }, set: { model.updateScript(language: $0) })) {
-                            ForEach(SpeechLanguage.allCases) { Text($0.title).tag($0) }
-                        }.controlSize(.regular)
+                        SpeechLanguagePicker(model: model)
                         Label("Lokale Spracherkennung", systemImage: "lock").font(.system(size: 11)).foregroundStyle(Design.accent)
                     }
                     if model.preferences.value.mode == .automatic {
@@ -33,10 +31,10 @@ struct ConfigurationPane: View {
                     }
                 }
                 section("LESEKOMFORT") {
-                    Picker("Schrift", selection: $model.preferences.value.font) {
-                        ForEach(ReadingFont.allCases) { Text($0.title).tag($0) }
-                    }.controlSize(.regular)
+                    FontTiles(font: $model.preferences.value.font)
+                    FontSizeTiles(size: $model.preferences.value.fontSize, font: model.preferences.value.font)
                     ValueSlider(title: "Textgröße", value: $model.preferences.value.fontSize, range: 18...56, suffix: "pt")
+                    ColorSwatches(color: $model.preferences.value.textColor)
                     ValueSlider(title: "Zeilenabstand", value: $model.preferences.value.lineSpacing, range: 4...28, suffix: "pt")
                     Toggle("Lesezeile hervorheben", isOn: $model.preferences.value.focusLine).toggleStyle(.switch).controlSize(.mini)
                     OpacitySlider(model: model)
@@ -59,7 +57,12 @@ struct ConfigurationPane: View {
                     HStack { Text("Weitere Einstellungen"); Spacer(); Image(systemName: "arrow.up.right") }
                 }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.secondary)
             }.padding(.horizontal, 24).padding(.top, 26).padding(.bottom, 32)
-        }.background(Design.surface.opacity(0.32))
+        }
+        // With always-visible scroll bars (mouse attached) SwiftUI briefly
+        // measured the content without the scroller whenever it changed, and
+        // the pane widened by the scroller's width for a moment.
+        .scrollIndicators(.never)
+        .background(Design.surface.opacity(0.32))
     }
 
     private var modeDescription: String {
@@ -80,15 +83,21 @@ struct ConfigurationPane: View {
                     .foregroundStyle(.tertiary)
             }.foregroundStyle(.secondary)
             GeometryReader { geometry in
+                let p = model.preferences.value
+                // The preview is narrower than the prompter: scale type by the
+                // same factor (at least half, to stay readable), so line breaks
+                // match what the prompter shows.
+                let textWidth = max(1, geometry.size.width - 28 - 44)
+                let scale = min(1, max(0.5, textWidth / max(1, p.width - 52 - 24)))
                 ZStack(alignment: .top) {
                     RoundedRectangle(cornerRadius: 14).fill(LinearGradient(
                         colors: [Color(red: 0.23, green: 0.25, blue: 0.32), Color(red: 0.13, green: 0.14, blue: 0.20)],
                         startPoint: .topLeading, endPoint: .bottomTrailing))
                     VStack(spacing: 12) {
                         Capsule().fill(.white.opacity(0.16)).frame(width: 36, height: 3).padding(.top, 10)
-                        Text(AttributedString(ScriptStyle.attributed(previewText,
-                            font: model.preferences.value.font.nsFont(size: min(22, model.preferences.value.fontSize * 0.55)), spacing: 3)))
+                        Text(AttributedString(ScriptStyle.preview(previewText, preferences: p, scale: scale)))
                             .fixedSize(horizontal: false, vertical: true)
+                            .animation(.easeInOut(duration: 0.2), value: p.fontSize)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .scaleEffect(x: model.preferences.value.mirror ? -1 : 1, y: 1)
                             .padding(.horizontal, 22)
@@ -116,6 +125,109 @@ struct ConfigurationPane: View {
             Text(title).font(.system(size: 10, weight: .semibold)).tracking(1.4).foregroundStyle(.secondary)
             content()
         }.font(.system(size: 13))
+    }
+}
+
+/// All languages of Apple's on-device dictation, plus a one-click switch
+/// when the script is clearly written in another language.
+struct SpeechLanguagePicker: View {
+    @Bindable var model: AppModel
+    @State private var languages: [SpeechLanguage] = [.german, .english]
+    @State private var suggestion: SpeechLanguage?
+    var body: some View {
+        let current = model.library.selected?.language ?? .german
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Sprache", selection: Binding(get: { current }, set: { model.updateScript(language: $0) })) {
+                ForEach(languages.contains(current) ? languages : [current] + languages) { Text($0.title).tag($0) }
+            }.controlSize(.regular)
+            if let suggestion {
+                Button { model.updateScript(language: suggestion) } label: {
+                    Label("Text klingt nach \(suggestion.shortTitle) · übernehmen", systemImage: "character.bubble")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Design.accent)
+                .help("Die Spracherkennung auf die Sprache des Skripts umstellen")
+            }
+        }
+        .task { languages = await SpeechLanguage.available() }
+        .task(id: "\(model.library.selected?.body.prefix(6000) ?? "")|\(current.rawValue)|\(languages.count)") {
+            let text = model.library.selected?.body ?? ""
+            let candidates = languages
+            suggestion = await Task.detached { SpeechLanguage.suggestion(for: text, current: current, among: candidates) }.value
+        }
+    }
+}
+
+/// Font choice as tiles showing each typeface.
+struct FontTiles: View {
+    @Binding var font: ReadingFont
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(ReadingFont.allCases) { option in
+                Tile(selected: font == option) { font = option } content: {
+                    Text("Ag").font(Font(option.nsFont(size: 17))).frame(height: 22)
+                    Text(option.title).font(.system(size: 9.5, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
+                }.help(option == .openDyslexic ? "OpenDyslexic – Schrift für Menschen mit Legasthenie" : option.title)
+            }
+        }
+    }
+}
+
+/// Quick sizes; the slider below stays for exact values.
+struct FontSizeTiles: View {
+    @Binding var size: Double
+    let font: ReadingFont
+    static let presets: [(title: String, size: Double)] = [("S", 24), ("M", 32), ("L", 40), ("XL", 48)]
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(Self.presets, id: \.title) { preset in
+                Tile(selected: size == preset.size) { size = preset.size } content: {
+                    Text("Ag").font(Font(font.nsFont(size: preset.size * 0.42)))
+                        .frame(height: 22)
+                    Text(preset.title).font(.system(size: 9.5, weight: .medium))
+                }.help("\(Int(preset.size)) pt")
+            }
+        }
+    }
+}
+
+struct ColorSwatches: View {
+    @Binding var color: ReadingColor
+    var body: some View {
+        HStack(spacing: 0) {
+            Text("Textfarbe").font(.system(size: 12)).foregroundStyle(.secondary)
+            Spacer()
+            HStack(spacing: 8) {
+                ForEach(ReadingColor.allCases) { option in
+                    Button { color = option } label: {
+                        Circle().fill(option.color).frame(width: 18, height: 18)
+                            .overlay(Circle().strokeBorder(.white.opacity(0.18), lineWidth: 1))
+                            .padding(3)
+                            .overlay(Circle().strokeBorder(color == option ? Design.accent : .clear, lineWidth: 1.5))
+                    }
+                    .buttonStyle(.plain).help(option.title).accessibilityLabel("Textfarbe \(option.title)")
+                    .accessibilityAddTraits(color == option ? .isSelected : [])
+                }
+            }
+        }
+    }
+}
+
+private struct Tile<Content: View>: View {
+    let selected: Bool
+    let action: () -> Void
+    @ViewBuilder let content: Content
+    var body: some View {
+        Button(action: { withAnimation(.easeInOut(duration: 0.15)) { action() } }) {
+            VStack(spacing: 4) { content }
+                .foregroundStyle(selected ? Design.accent : .primary)
+                .frame(maxWidth: .infinity).padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 9).fill(selected ? Design.accent.opacity(0.13) : Color.primary.opacity(0.05)))
+                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(selected ? Design.accent.opacity(0.45) : .clear, lineWidth: 1.2))
+                .contentShape(RoundedRectangle(cornerRadius: 9))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

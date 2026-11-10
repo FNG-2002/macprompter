@@ -49,6 +49,13 @@ swiftc -O -module-cache-path /tmp/macprompter-module-cache \
 
 Mit der Option „Im Sprechtempo scrollen“ (Einstellungen → Lesen) berechnet `ReaderViewport.continuousVoiceOffset` das Scrollziel im Sprachmodus pro Bild aus einer geschätzten Zeichenposition (`ReadingLead`, ADR-19): eine Glyphenabfrage und zwei Zeilenrechtecke im bereits fertigen Layout, ohne Textlayout und ohne SwiftUI-Durchlauf. Die Bewegung läuft weiter über `ReadingMotion` am Display-Link. Ein Test prüft, dass das Ziel über alle Zeichen eines mehrzeiligen Texts monoton steigt und nirgends eine ganze Zeile springt.
 
+## Markierung, Abdunkeln und Einblenden (10.11.2026)
+
+- **Gelesenes abdunkeln:** Im Modus Stimme bekommt der Text vor dem aktuellen Wort eine temporäre Vordergrundfarbe mit 38 % Deckkraft (`ScriptStyle.spokenAlpha`). Pro Wortwechsel wird nur die Differenz zum vorherigen Stand gesetzt oder entfernt; temporäre Attribute ändern weder Glyphenbreiten noch Layout.
+- **Wortkasten:** `WordBoxLayoutManager` (TextKit 1) zeichnet Hintergrund-Markierungen als abgerundete Kästen in Schrifthöhe, ohne den Zeilenabstand darunter. Der Standard füllte das ganze Zeilenfragment; der Kasten ragte in die nächste Zeile, und beim Weiterspringen blieben lila Streifen stehen. Zusätzlich werden die betroffenen Zeilen beim Wechsel vollständig neu gezeichnet.
+- **Einblenden:** `OverlayReveal` blendet den Prompter mit einer Feder aus der Notch auf (Maske skaliert von oben, Inhalt blendet ein) und zieht ihn beim Ausblenden in 0,16 s zurück; das Panel wird erst danach entfernt. Mit „Bewegung reduzieren“ nur Überblenden. Die Scrollrad-Überwachung endet sofort beim Ausblenden.
+- **Seitenleiste:** Die Konfigurationsleiste blendet ihren Scrollbalken aus. Mit dauerhaft sichtbaren Scrollbalken maß SwiftUI den Inhalt beim Moduswechsel kurz ohne Balken, und die Leiste wurde für einen Moment 17 pt breiter (Regressionstest).
+
 ## Prüfung
 
 Neue Tests decken den echten Display-Link mit Start, Hover, Wiederaufnahme und Entfernen aus dem Fenster ab. Weitere Tests prüfen unabhängige Wortmarkierung ohne laufende Uhr, unverändertes Textlayout nach 120 Scroll-/Markierungsupdates, Höhen- gegenüber Breitenänderungen, Erhalt der Reader-Instanz, die schnellere Bewegung ohne Überschwingen sowie vorbereitete Satz-/Cue-Fenster. Bestehende Sprachtests einschließlich der semantischen Rückkehr bleiben Bestandteil der Gesamtsuite.

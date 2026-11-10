@@ -102,6 +102,69 @@ final class ReadingLeadTests: XCTestCase {
         XCTAssertEqual(run(enabled: false).afterStall, 0, "off by default: no reader, no voice destination, no movement")
     }
 
+    func testSpokenPositionLeadsByTheRecognitionDelay() throws {
+        var lead = steadyLead()
+        lead.advanceSpoken(now: 1.5, speaking: true, limit: 100)
+        XCTAssertEqual(try XCTUnwrap(lead.spoken), 30 + 20 * ReadingLead.recognitionDelay, accuracy: 0.001)
+        var capped = steadyLead()
+        capped.advanceSpoken(now: 1.8, speaking: true, limit: 36)
+        XCTAssertEqual(try XCTUnwrap(capped.spoken), 36, accuracy: 0.001, "capped")
+        capped.confirm(character: 33, at: 1.9, jump: false)
+        XCTAssertEqual(try XCTUnwrap(capped.spoken), 36, accuracy: 0.001, "a late confirmation does not pull it back")
+        var quiet = steadyLead()
+        quiet.advanceSpoken(now: 1.5, speaking: false, limit: 100)
+        XCTAssertEqual(try XCTUnwrap(quiet.spoken), 30, accuracy: 0.001, "silence holds")
+        var stalled = steadyLead()
+        stalled.advanceSpoken(now: 1.5 + ReadingLead.stallAfter + 0.01, speaking: true, limit: 100)
+        XCTAssertEqual(try XCTUnwrap(stalled.spoken), 30, accuracy: 0.001, "no confirmation, no lead")
+    }
+
+    @MainActor
+    func testPredictedHighlightRunsAheadAtMostTwoWordsAndNeverBack() throws {
+        func run(enabled: Bool) -> (ahead: Int, afterStall: Int, afterLateWord: Int, offScript: Int) {
+            let preferences = PreferenceStore(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+            preferences.value.mode = .voice
+            preferences.value.predictiveHighlight = enabled
+            let session = PrompterSession(preferences: preferences)
+            let words = ["Moderne", "Speicher", "liefern", "nachhaltige", "Energie", "für", "unsere", "gemeinsame", "Zukunft", "heute", "und", "morgen"]
+            session.script = Script(title: "Test", body: words.joined(separator: " "))
+            session.reset()
+            session.gate = PlaybackGate(isVisible: true, isPlaying: true, isHovering: false, countdown: 0)
+            var frame = 0
+            func tick(_ count: Int, loud: Bool = true) {
+                for _ in 0..<count {
+                    frame += 1
+                    session.speech.level = loud && frame % 3 != 0 ? 0.6 : 0.04
+                    session.advanceReading(by: 0.05)
+                }
+            }
+            func shown() -> Int { words.firstIndex { (session.script.body as NSString).range(of: $0).location == session.activeWordRange?.location } ?? -1 }
+            for count in 1...5 {
+                session.receiveTranscript(words.prefix(count).joined(separator: " "), segment: 0, endTime: Double(count) * 0.35)
+                tick(7)
+            }
+            let ahead = shown()
+            tick(40)
+            let afterStall = shown()
+            session.receiveTranscript(words.prefix(6).joined(separator: " "), segment: 0, endTime: 2.5)
+            let afterLateWord = shown()
+            session.receiveTranscript(words.prefix(6).joined(separator: " ") + " ganz anders als gedacht wirklich", segment: 0, endTime: 4)
+            tick(20)
+            return (ahead, afterStall, afterLateWord, shown())
+        }
+        let predicted = run(enabled: true)
+        XCTAssertGreaterThan(predicted.ahead, 4, "ahead of the last recognized word (Energie)")
+        XCTAssertLessThanOrEqual(predicted.afterStall, 4 + PrompterSession.predictedWordsAhead, "at most two words ahead")
+        XCTAssertGreaterThanOrEqual(predicted.afterLateWord, predicted.afterStall, "a late recognition does not move it back")
+        XCTAssertLessThanOrEqual(predicted.offScript, 5 + PrompterSession.predictedWordsAhead, "off script it stops")
+        let plain = run(enabled: false)
+        XCTAssertEqual(plain.ahead, 4, "off: the highlight stays on recognized words")
+        XCTAssertEqual(plain.afterLateWord, 5)
+        XCTAssertTrue(Preferences().predictiveHighlight, "on unless switched off")
+        let stored = try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(Preferences()))
+        XCTAssertTrue(stored.predictiveHighlight, "older preferences get it too")
+    }
+
     @MainActor
     func testContinuousGeometryRisesSmoothlyThroughLines() throws {
         let preferences = PreferenceStore(defaults: UserDefaults(suiteName: UUID().uuidString)!)

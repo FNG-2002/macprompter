@@ -2,7 +2,7 @@
 
 Diese Datei ist die verbindliche Arbeitsgrundlage für jeden Agent (Claude Code, Codex u. a.), der an macprompter arbeitet. `CLAUDE.md` verweist hierher. Bei Widersprüchen gilt: ausdrückliche Anweisung des Maintainers > diese Datei > übrige Doku.
 
-**macprompter** ist ein nativer, vollständig lokaler Teleprompter für macOS 26+ mit Notch-Overlay und skriptgebundener Sprachsteuerung (Apple SpeechAnalyzer, Deutsch/Englisch). Swift 6, SwiftUI + AppKit, keine externen Pakete. Open Source unter MIT; einziger Maintainer mit Schreibrechten ist `FNG-2002`.
+**macprompter** ist ein nativer, lokaler Teleprompter für macOS 26+ mit Notch-Overlay und skriptgebundener Sprachsteuerung (Apple SpeechAnalyzer, alle lokalen Diktiersprachen mit Leerzeichen zwischen Wörtern). Swift 6, SwiftUI + AppKit, keine externen Pakete. Open Source unter MIT; einziger Maintainer mit Schreibrechten ist `FNG-2002`.
 
 ## 1. Arbeitsmodus: autonom
 
@@ -45,10 +45,10 @@ Mehrere unabhängige Anforderungen → getrennte Branches/PRs. Niemals `git push
 
 ## 3. Produktprinzipien (nicht verhandelbar)
 
-- **Alles on-device.** Kein Netzwerkzugriff der App, keine Cloud-Erkennung, keine Telemetrie, kein Account. Einzige Ausnahme: der von macOS selbst verwaltete Download von Sprachmodellen über `AssetInventory`.
+- **Alles on-device.** Kein Netzwerkzugriff der App, keine Cloud-Erkennung, keine Telemetrie, kein Account. Ausnahmen: der von macOS selbst verwaltete Download von Sprachmodellen über `AssetInventory` und die abschaltbare Update-Suche, die nur die neueste Versionsnummer bei der GitHub-API abfragt (ADR-29). Keine weiteren Verbindungen ohne Freigabe des Maintainers.
 - **Keine externen Abhängigkeiten.** Keine Swift-Pakete, keine Fremdmodelle. Apple-Frameworks bevorzugen (Speech, NaturalLanguage, AppKit).
 - **Geschwindigkeit hat Vorrang.** Im Wort-für-Wort-Pfad wird nie gewartet: keine Modellabfrage, kein Warten auf Satzende, keine künstliche Verzögerung. Eine Sekunde gefühlte Verzögerung ist bereits zu lang.
-- **Nichts erfinden.** Keine Vorhersage ungesprochener Wörter, kein Überschwingen. Bei Mehrdeutigkeit stehen bleiben statt raten. Schwellen nicht pauschal absenken – das beschleunigt auch falsche Sprünge. Einzige, vom Maintainer freigegebene Ausnahme (ADR-19): die standardmäßig ausgeschaltete Option „Im Sprechtempo scrollen“ (Einstellungen → Lesen), die den Text höchstens drei bis vier Wörter über das zuletzt erkannte Wort hinaus gleiten lässt. Die Markierung und die Ausrichtung bleiben streng; ein vorläufig markiertes Wort wurde ausprobiert und verworfen.
+- **Nichts erfinden.** Keine Vorhersage ungesprochener Wörter, kein Überschwingen. Bei Mehrdeutigkeit stehen bleiben statt raten. Schwellen nicht pauschal absenken – das beschleunigt auch falsche Sprünge. Vom Maintainer freigegebene Ausnahmen: die standardmäßig ausgeschaltete Option „Im Sprechtempo scrollen“ (ADR-19), die den Text höchstens drei bis vier Wörter über das zuletzt erkannte Wort hinaus gleiten lässt, und die standardmäßig eingeschaltete „Markierung im Sprechtempo vorziehen“ (ADR-31), die die Markierung höchstens zwei Wörter vorlaufen lässt und nie von selbst zurücknimmt. Beide unter Einstellungen → Lesen. Die Ausrichtung bleibt streng; eine blasse, zurückgenommene Zweitmarkierung wurde ausprobiert und verworfen.
 - **Hover und Pause haben Vorrang.** `PlaybackGate` ist die einzige Bewegungssperre für Timer, Sprache, Tasten und Scrollrad. Während Hover/Pause gesprochene Wörter werden nicht nachgeholt.
 - **Privatsphäre.** Audio und Transkripte werden nie gespeichert oder geloggt. Diagnose nur begrenzt im Arbeitsspeicher.
 - **Nutzerdaten sind heilig.** `scripts.json` und `preferences.v1` bleiben abwärtskompatibel: neue Felder optional mit Default (Muster: `semanticRecoveryEnabled` in `Preferences.swift`). Eine nicht lesbare Bibliothek wird nie überschrieben.
@@ -61,7 +61,7 @@ Mehrere unabhängige Anforderungen → getrennte Branches/PRs. Niemals `git push
 - **Xcode-Projekt wird generiert.** `project.pbxproj` und das Schema nie von Hand bearbeiten. Build-Einstellungen ändern = `scripts/generate_project.py` ändern und neu generieren. Quellen werden automatisch aus `MacPrompter/**/*.swift`, `MacPrompter/Resources/**`, `MacPrompterTests/*.swift` und `MacPrompterTests/Fixtures/*` übernommen.
 - **Zustand:** `@Observable` + `@MainActor` für App-Zustand. Rechenintensive oder nicht threadsichere Arbeit (z. B. `NLEmbedding`) in einem eigenen `actor`. Audio-Callbacks laufen außerhalb des MainActor – siehe `MicrophoneTap`.
 - **Hochfrequente Updates** (Scroll-Offset, Display-Link) nicht über SwiftUI-Beobachtung leiten (`@ObservationIgnored` + Callback), sonst entsteht unnötige View-Arbeit.
-- **Sprache:** Bezeichner und Code-Kommentare Englisch; UI-Texte, Fehlermeldungen und Doku Deutsch. Englische Skripte/Erkennung werden unterstützt, die Oberfläche ist deutsch.
+- **Sprache:** Bezeichner und Code-Kommentare Englisch; UI-Texte, Fehlermeldungen und Doku Deutsch. Skripte und Erkennung gibt es in vielen Sprachen (ADR-30), die Oberfläche ist deutsch.
 - **Stil:** an den umgebenden Code anpassen – kompakt, wenige Kommentare, und wenn, dann das *Warum*. Keine neuen Abstraktionsebenen ohne Anlass.
 - **Tests:** XCTest in `MacPrompterTests` mit der App als Test-Host. Zeitabhängige Logik über injizierte `dt`/Zeitstempel deterministisch testen (`advanceReading(by:)`, `receiveTranscript`). Tests mit Systemmodellen (`SpeechIntegrationTests`, echte `NLEmbedding`-Modelle) überspringen sich per `XCTSkip`, wenn das Modell fehlt. Zeitgrenzen in Debug-Tests großzügig wählen.
 - **Benchmarks** liegen in `scripts/Benchmark*.swift` und werden mit `swiftc -O` direkt gegen die Core-Dateien gebaut (Aufruf jeweils in der Fachdoku). Bei Performance-Änderungen vorher/nachher mit derselben Toolchain messen.
@@ -74,9 +74,10 @@ Mehrere unabhängige Anforderungen → getrennte Branches/PRs. Niemals `git push
 | `MacPrompter/MacPrompterApp.swift` | App-Einstieg, Menüs, Menüleiste, AppDelegate (Ruhezustand → ausblenden) |
 | `MacPrompter/AppModel.swift` | Zentraler App-Zustand: Bibliothek, Session, Overlay, Hotkeys, Import/Export, Einstellungsfenster |
 | `MacPrompter/Core/Script.swift` | `Script`, `PlaybackGate`, Modi |
-| `MacPrompter/Core/ScriptText.swift` | `ScriptParser` (Wörter, Cues), `ScriptToken`, Sprachen – ohne App-Typen, für Benchmarks |
+| `MacPrompter/Core/ScriptText.swift` | `ScriptParser` (Wörter, Cues), `ScriptToken`, `SpeechLanguage` samt Sprachvorschlag – ohne App-Typen, für Benchmarks |
 | `MacPrompter/Core/ScriptFollower.swift` | Wortausrichtung (lokal, flexibel, global), `ReadingMotion` (Scrollkurve) |
-| `MacPrompter/Core/ReadingLead.swift` | Scrollen im Sprechtempo: begrenzter Vorlauf und einfache Stimmaktivität (ADR-19) |
+| `MacPrompter/Core/ReadingLead.swift` | Scrollen und Markierung im Sprechtempo: begrenzter Vorlauf und einfache Stimmaktivität (ADR-19, ADR-31) |
+| `MacPrompter/Core/UpdateCheck.swift`, `Services/UpdateChecker.swift` | Versionsvergleich und tägliche Update-Suche über die GitHub-API (ADR-29) |
 | `MacPrompter/Core/LexicalBridge.swift` | Schreibweisen gehörter Wörter ans Skript angleichen (Zahlen, Abkürzungen, Komposita, knapp verfehlte Wörter) |
 | `MacPrompter/Core/Session.swift` | `PrompterSession`: Wiedergabe, Countdown, Transkript → Markierung/Scrollziel, semantische Rückkehr |
 | `MacPrompter/Core/Library.swift`, `Preferences.swift` | Persistenz `scripts.json` bzw. UserDefaults `preferences.v1` |
@@ -87,7 +88,7 @@ Mehrere unabhängige Anforderungen → getrennte Branches/PRs. Niemals `git push
 | `MacPrompter/Services/OverlayController.swift` | Nicht aktivierendes `NSPanel`, Notch-/Freiposition, Bildschirmwahl |
 | `MacPrompter/Services/GlobalShortcuts.swift` | Carbon-Hotkeys ⌥⌘P/H/↑/↓ |
 | `MacPrompter/Services/MCPBridge.swift`, `MacPrompterMCP/` | stdio-Helfer `macprompter-mcp` für Claude Desktop/Cowork (eigene Sandbox, nur `network.client`), reicht an den MCP-Server der App weiter (ADR-23) |
-| `MacPrompter/Views/` | Bibliothek (`WorkspaceView`), Konfiguration, Reader/Editor (`NSTextView`, Display-Link), Overlay, Einstellungen |
+| `MacPrompter/Views/` | Bibliothek (`WorkspaceView`), Konfiguration, Reader/Editor (`NSTextView`, Display-Link, `WordBoxLayoutManager`), Overlay mit Einblendanimation (`OverlayReveal`), Einstellungen |
 | `MacPrompterTests/` | XCTest-Suite + synthetische DE/EN-Audiofixtures |
 | `scripts/` | `check.sh`, Projektgenerator, Testaudios (`make_fixtures.sh`), Release (`package_release.sh`, `release_notes.py`, `make_signing_identity.sh`), Benchmarks, Icon-Erzeugung, Sprach-Smoke-Test, Medien (`media/`) |
 | `docs/` | Architektur, Entscheidungen, Fachdoku, Messberichte, Abnahme, Releases, KI-Offenlegung, Medien |

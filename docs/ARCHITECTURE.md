@@ -22,6 +22,7 @@ MacPrompterApp ─ AppDelegate
       │        ⇅ lokales Netz / AWDL
       │   macprompter Remote (iOS) ── RemoteClient (Shared/) ── SwiftUI
       ├── MCPServer ── HTTP auf 127.0.0.1 ── JSON-RPC ── AgentTools (Skripte/Präsentationen bearbeiten)
+      ├── UpdateChecker ── täglich GET api.github.com/…/releases/latest ── UpdateCheck (Versionsvergleich, ADR-29)
       └── GlobalShortcuts (Carbon-Hotkeys)
 ```
 
@@ -46,7 +47,7 @@ MacPrompterApp ─ AppDelegate
 1. `SpeechService` liest das Mikrofon über `AudioSinkCapture` (`AVAudioSinkNode`, Geräteblöcke ~10 ms; der Echtzeit-Callback kopiert nur in einen Ringpuffer, ein Worker-Thread wandelt um; Rückfall auf `installTap`), gibt das Audio an `SpeechAnalyzer` und liefert veränderliche und finale Teilresultate mit Segment-ID und Audio-Endzeit an `PrompterSession.receiveTranscript`. Bei einem Eingangswechsel (`AVAudioEngineConfigurationChange`) hängt es den neuen Eingang an denselben Analyzer; die Audiozeit läuft weiter.
 2. Ergebnisse vor `ignoreSpeechThrough` (Hover, Pause, manuelle Navigation, Countdown) werden verworfen.
 3. `ScriptFollower.consume` gleicht zuerst die Schreibweise gehörter Wörter an das Skript an (`LexicalBridge`: Zahlen, Abkürzungen, Komposita, knapp verfehlte Wörter) und richtet dann die letzten bis zu zwölf gehörten Wörter am Skript aus: lokal → flexibel lokal → global, mit dauerhaftem Anker für Einschübe. Siehe [SPEECH_FOLLOWING.md](SPEECH_FOLLOWING.md).
-4. Treffer: `activeWordRange` (Markierung) und `targetCharacter` (nächstes Wort). Der Reader löst `targetCharacter` in eine Pixelposition auf (`resolveVoiceDestination`), die der Display-Link anfährt.
+4. Treffer: `activeWordRange` (Markierung) und `targetCharacter` (nächstes Wort). Mit „Markierung im Sprechtempo vorziehen“ (Standard) rückt `predictHighlight` pro Bild die Markierung bis zu zwei Wörter im Sprechtempo vor (`ReadingLead`, ADR-31). Der Reader dunkelt Text vor der Markierung ab und zeichnet das Wort mit `WordBoxLayoutManager`. Der Reader löst `targetCharacter` in eine Pixelposition auf (`resolveVoiceDestination`), die der Display-Link anfährt.
 5. Kein Treffer und Option „Umformulierungen erkennen“ aktiv: asynchrone Anfrage an `AppleSemanticRecovery` (eine laufende + eine ersetzbare Anfrage, Ergebnisse > 250 ms oder mit veralteter Revision werden verworfen). Siehe [SEMANTIC_RECOVERY.md](SEMANTIC_RECOVERY.md).
 
 ### PDF-Präsentationen
@@ -79,6 +80,7 @@ MacPrompterApp ─ AppDelegate
 
 ## Fenster und System
 
+- Einblenden: `OverlayReveal` lässt den Inhalt aus der Notch wachsen; `OverlayController.hide()` entfernt das Panel erst nach der Animation.
 - `PrompterPanel`: `.nonactivatingPanel`, `canBecomeKey = false`, über allen Spaces und Vollbild-Apps; im Notch-Modus oberhalb der Menüleiste. `sharingType = .none` ist nur ein Best-Effort-Aufnahmeschutz.
 - Bildschirmwechsel (`didChangeScreenParametersNotification`) und Präferenzänderungen lösen `reposition()` aus; das Hosting-View und der Reader bleiben dabei erhalten.
 - Globale Hotkeys über Carbon `RegisterEventHotKey` – keine Accessibility-Berechtigung nötig. Folien-Hotkeys (⌥⌘←/→) existieren nur während einer Präsentation; mehrere `GlobalShortcuts`-Instanzen reichen fremde IDs weiter.

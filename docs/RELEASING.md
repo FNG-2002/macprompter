@@ -53,7 +53,7 @@ Installationsanleitung, Gatekeeper-Hinweis, Systemvoraussetzungen und Prüfsumme
 
 ## Was bewusst fehlt
 
-- **Kein automatisches Update in der App.** Eine Update-Prüfung bräuchte Netzwerkzugriff oder ein Fremdpaket wie Sparkle; beides widerspricht den Produktprinzipien (ADR-1, ADR-26). Neue Versionen stehen unter Releases; Hilfe → Versionshinweise führt dorthin. Der Skill `macos-release` beschreibt einen Sparkle-Ablauf und ist für dieses Projekt nur für DMG und Notarisierung relevant.
+- **Update-Hinweis statt automatischer Installation** (ADR-29). Ab 1.1.0 vergleicht die App täglich ihre Version mit dem neuesten Release über die GitHub-API; Entwürfe und Vorabversionen zählen nicht. Ein Release erscheint also bei allen Nutzern mit eingeschalteter Update-Suche spätestens am nächsten Tag als Hinweis. Installiert wird nicht; echtes Auto-Update bräuchte Sparkle (Fremdpaket). Der Skill `macos-release` beschreibt einen Sparkle-Ablauf und ist für dieses Projekt nur für DMG und Notarisierung relevant.
 - **Keine iOS-App als Download.** iOS-Apps lassen sich nur über App Store oder TestFlight verteilen. **macprompter Remote** bleibt vorerst Quellcode zum Selbstbauen.
 
 ## Fehlerbehebung

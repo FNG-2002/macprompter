@@ -179,8 +179,9 @@ actor AppleSemanticRecovery: SemanticRecovering {
     private func model(for language: SpeechLanguage) -> NLEmbedding? {
         if let model = models[language] { return model }
         guard !unavailable.contains(language) else { return nil }
-        let locale: NLLanguage = language == .german ? .german : .english
-        guard let model = NLEmbedding.sentenceEmbedding(for: locale) else {
+        // Thresholds are measured for German and English only.
+        let locale: NLLanguage? = language.code == "de" ? .german : language.code == "en" ? .english : nil
+        guard let locale, let model = NLEmbedding.sentenceEmbedding(for: locale) else {
             unavailable.insert(language); return nil
         }
         models[language] = model

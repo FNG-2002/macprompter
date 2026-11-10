@@ -34,13 +34,13 @@ final class AgentTools {
              #"{"type":"object","properties":{"script_id":{"type":"string","description":"Script id from list_scripts"}},"required":["script_id"]}"#, readOnly: true),
         tool("create_script", "Skript anlegen",
              "Creates a new plain teleprompter script. Use blank lines between paragraphs and [stage directions] in brackets, e.g. [Pause] or [Lächeln].",
-             #"{"type":"object","properties":{"title":{"type":"string"},"text":{"type":"string"},"language":{"type":"string","enum":["de","en"],"description":"Speech recognition language, default de"}},"required":["title","text"]}"#),
+             #"{"type":"object","properties":{"title":{"type":"string"},"text":{"type":"string"},"language":{"type":"string","description":"Speech recognition language as code or locale, e.g. de, en, fr, tr, de-CH; default de"}},"required":["title","text"]}"#),
         tool("update_script", "Skript ändern",
              "Changes title, language or text of a script. For presentations only title and language can be changed here; use set_slide_text or set_slides for the slide texts.",
-             #"{"type":"object","properties":{"script_id":{"type":"string"},"title":{"type":"string"},"text":{"type":"string"},"language":{"type":"string","enum":["de","en"]}},"required":["script_id"]}"#),
+             #"{"type":"object","properties":{"script_id":{"type":"string"},"title":{"type":"string"},"text":{"type":"string"},"language":{"type":"string","description":"Speech recognition language as code or locale, e.g. de, en, fr, tr, de-CH"}},"required":["script_id"]}"#),
         tool("create_presentation", "Präsentation anlegen",
              "Creates a presentation from a PDF and optionally sets the spoken text per slide. Pass pdf_path (a file inside the folder the user shared in macprompter's settings, absolute or relative to it) or pdf_base64 for small files. slides is an ordered list; give steps > 1 when a slide spans several consecutive PDF pages (builds). Without steps every PDF page is one slide.",
-             #"{"type":"object","properties":{"title":{"type":"string"},"pdf_path":{"type":"string"},"pdf_base64":{"type":"string"},"language":{"type":"string","enum":["de","en"]},"slides":{"type":"array","items":{"type":"object","properties":{"text":{"type":"string"},"steps":{"type":"integer","minimum":1}},"required":["text"]}}},"required":["title"]}"#),
+             #"{"type":"object","properties":{"title":{"type":"string"},"pdf_path":{"type":"string"},"pdf_base64":{"type":"string"},"language":{"type":"string","description":"Speech recognition language as code or locale, e.g. de, en, fr, tr, de-CH"},"slides":{"type":"array","items":{"type":"object","properties":{"text":{"type":"string"},"steps":{"type":"integer","minimum":1}},"required":["text"]}}},"required":["title"]}"#),
         tool("set_slide_text", "Folientext setzen",
              "Sets the spoken text (speaker notes) of one slide. Slides are numbered from 1 as returned by get_script; slides without a PDF page are addressed by section_id.",
              #"{"type":"object","properties":{"script_id":{"type":"string"},"slide":{"type":"integer","minimum":1},"section_id":{"type":"string"},"text":{"type":"string"}},"required":["script_id","text"]}"#),
@@ -221,10 +221,9 @@ final class AgentTools {
     }
 
     private func language(_ arguments: JSONValue) throws -> SpeechLanguage? {
-        guard let value = arguments["language"]?.string?.lowercased() else { return nil }
-        if value.hasPrefix("de") { return .german }
-        if value.hasPrefix("en") { return .english }
-        throw Failure("language muss de oder en sein.")
+        guard let value = arguments["language"]?.string else { return nil }
+        guard let language = SpeechLanguage(code: value) else { throw Failure("language muss ein Sprachcode sein, z. B. de, en, fr oder tr.") }
+        return language
     }
 
     private func exportScript(_ arguments: JSONValue) throws -> JSONValue {
@@ -283,7 +282,7 @@ final class AgentTools {
 
     private func summary(_ script: Script) -> JSONValue {
         var object: [String: JSONValue] = ["script_id": .string(script.id.uuidString), "title": .string(script.title),
-            "language": .string(script.language == .german ? "de" : "en"),
+            "language": .string(script.language.shortCode),
             "words": .number(Double(ScriptParser.words(in: script.body).count)),
             "modified_at": .string(ISO8601DateFormatter().string(from: script.modifiedAt))]
         if let deck = script.presentation {

@@ -15,18 +15,18 @@
 
 <p align="center"><a href="docs/media/macprompter-demo.mp4">▶ Demo-Video (41 s, ohne Ton)</a></p>
 
-> **In English:** macprompter is a free, open-source teleprompter for macOS 26+. The script sits right below your camera at the notch, scrolls at your pace or follows your voice word by word using Apple's on-device speech recognition (German and English), and can drive your PDF slides. No account, no cloud, no telemetry. The interface is currently German only.
+> **In English:** macprompter is a free, open-source teleprompter for macOS 26+. The script sits right below your camera at the notch, scrolls at your pace or follows your voice word by word using Apple's on-device speech recognition (every language Apple's on-device dictation offers, e.g. German, English, French, Spanish, Turkish), and can drive your PDF slides. No account, no cloud, no telemetry. The interface is currently German only.
 
 ## Was macprompter kann
 
 - **Text direkt an der Kamera.** Der Prompter hängt an der Notch oder schwebt frei, über allen Fenstern und Vollbild-Apps, ohne dass macprompter den Fokus stiehlt.
-- **Folgt deiner Stimme.** Im Modus *Stimme* markiert macprompter das zuletzt gesprochene Wort und scrollt mit. Auslassen, versprechen, kurz abschweifen: Er findet zurück, rät aber nie voraus. Deutsch und Englisch, über Apples lokale Spracherkennung.
+- **Folgt deiner Stimme.** Im Modus *Stimme* markiert macprompter das Wort, das du gerade sagst, dunkelt Gelesenes ab und scrollt mit. Auslassen, versprechen, kurz abschweifen: Er findet zurück und läuft beim freien Reden nicht weiter. In allen Sprachen von Apples lokalem Diktat, zum Beispiel Deutsch, Englisch, Französisch, Spanisch oder Türkisch.
 - **Oder im eigenen Tempo.** Modus *Automatisch* mit einstellbarer Geschwindigkeit, Modus *Manuell* per Tasten, Scrollrad oder iPhone.
 - **Maus drüber heißt Pause.** Sobald der Zeiger über dem Prompter liegt, steht alles still.
 - **Präsentationen.** PDF importieren, Sprechtext pro Folie schreiben, präsentieren: Die Folien wechseln mit deinem Text, auf Wunsch mit Referentenansicht auf dem zweiten Bildschirm. Eine neu exportierte PDF behält die Texte.
-- **Angenehm zu lesen.** Schriftgröße, Zeilenabstand, Lesezeile, Spiegelung, durchscheinender Hintergrund und die Schrift OpenDyslexic. `[Regieanweisungen]` bleiben dezent grau.
+- **Angenehm zu lesen.** Fünf Schriften (darunter Serif, Mono und OpenDyslexic), Größen, Textfarben, Zeilenabstand, Lesezeile, Spiegelung und durchscheinender Hintergrund, mit Live-Vorschau. `[Regieanweisungen]` bleiben dezent grau.
 - **Für KI-Assistenten.** Optionaler lokaler MCP-Zugang: Claude & Co. können Skripte und Folientexte für dich anlegen ([docs/MCP.md](docs/MCP.md)).
-- **Privat.** Kein Konto, keine Cloud, keine Telemetrie. Audio wird nie gespeichert.
+- **Privat.** Kein Konto, keine Cloud, keine Telemetrie. Audio wird nie gespeichert. Die einzige Internetverbindung ist die abschaltbare Update-Suche.
 
 | | |
 | --- | --- |
@@ -46,7 +46,7 @@
 
 **Voraussetzungen:** macOS 26 oder neuer. Entwickelt und getestet auf Apple Silicon; der Build ist universell, Intel-Macs sind ungetestet. Für die Sprachsteuerung lädt macOS beim ersten Take gegebenenfalls Apples Sprachmodell (einmalig, verwaltet von macOS).
 
-**Updates:** Die App prüft nicht selbst online nach Updates. Neue Versionen erscheinen unter [Releases](https://github.com/FNG-2002/macprompter/releases) (Hilfe → Versionshinweise); einfach die neue DMG installieren. Skripte, Einstellungen und Freigaben bleiben erhalten.
+**Updates:** Ab 1.1.0 fragt die App einmal am Tag bei GitHub nach der neuesten Versionsnummer und zeigt in der Bibliothek einen Hinweis, wenn es eine neue Version gibt (Hilfe → „Nach Updates suchen …“ prüft sofort, abschaltbar unter Einstellungen → Über macprompter). Installiert wird nichts automatisch: Die neue DMG von [Releases](https://github.com/FNG-2002/macprompter/releases) laden und installieren. Skripte, Einstellungen und Freigaben bleiben erhalten.
 
 ## Erste Schritte
 
@@ -72,7 +72,7 @@ Die globalen Tastenkürzel brauchen keine Bedienungshilfen-Freigabe. Das Scrollr
 
 ## Sprachsteuerung: was sie kann und was nicht
 
-macprompter nutzt Apples Diktiermodell (`SpeechAnalyzer`) und gibt ihm Namen und Fachbegriffe aus deinem Skript als Vokabular mit. Die Markierung folgt ausschließlich erkannten Wörtern, nie einer geschätzten Geschwindigkeit. Unterschiedliche Schreibweisen („drei“/„3“, „Dr.“, „E-Mail“/„email“) gelten als dasselbe Wort. Bei Zwischenfragen oder Anekdoten hält der Text die Position; beim Wiedereinstieg reichen ein paar eindeutige Wörter. Leicht umformulierte Sätze erkennen Apples lokale Satzmodelle im Hintergrund.
+macprompter nutzt Apples Diktiermodell (`SpeechAnalyzer`) auf dem Gerät und gibt ihm Namen und Fachbegriffe aus deinem Skript als Vokabular mit. Die Position im Skript bestimmen ausschließlich erkannte Wörter. Damit die Markierung nicht hinter der Stimme herläuft, zieht sie in deinem Tempo bis zu zwei Wörter vor, solange du sprichst und auf dem Skript bist (Einstellungen → Lesen → „Markierung im Sprechtempo vorziehen“, abschaltbar). Unterschiedliche Schreibweisen („drei“/„3“, „Dr.“, „E-Mail“/„email“) gelten als dasselbe Wort. Bei Zwischenfragen oder Anekdoten hält der Text die Position; beim Wiedereinstieg reichen ein paar eindeutige Wörter. Leicht umformulierte Sätze erkennen Apples lokale Satzmodelle im Hintergrund.
 
 Grenzen: Ein Wort erscheint typischerweise etwa eine halbe Sekunde nach dem Aussprechen. Andere Stimmen, die Skriptwörter sagen, können ebenfalls Fortschritt auslösen. Optional gleitet der Text zwischen erkannten Wörtern in deinem Tempo weiter (Einstellungen → Lesen → „Im Sprechtempo scrollen“, höchstens drei bis vier Wörter voraus). Details und Messwerte: [Wortausrichtung](docs/SPEECH_FOLLOWING.md), [Messbericht](docs/SPEECH_LATENCY_RESULTS.md), [Satzmodelle](docs/SEMANTIC_RECOVERY.md).
 
@@ -80,7 +80,7 @@ Grenzen: Ein Wort erscheint typischerweise etwa eine halbe Sekunde nach dem Auss
 
 - Skripte (`scripts.json`) und Kopien verknüpfter PDFs liegen im Application-Support-Ordner der sandboxed App (Einstellungen → Privatsphäre → Skriptordner öffnen). Eine beschädigte Bibliothek wird nie überschrieben.
 - Das Mikrofon läuft nur während eines Takes im Modus Stimme. Audio und Transkripte werden weder gespeichert noch geloggt; die Diagnose kennt nur Zahlen.
-- Die App baut keine Verbindung ins Internet auf. Netzwerk nutzt sie nur, wenn du es einschaltest: die iPhone-Fernbedienung im lokalen Netz und den MCP-Zugang auf `127.0.0.1`.
+- Ins Internet verbindet sich die App nur für die Update-Suche: einmal am Tag eine Anfrage an die GitHub-API nach der neuesten Versionsnummer, ohne Daten über dich oder deine Skripte; GitHub sieht dabei deine IP-Adresse. Abschaltbar unter Einstellungen → Über macprompter. Sprachmodelle lädt macOS selbst. Lokales Netz nutzt die App nur, wenn du es einschaltest: die iPhone-Fernbedienung und den MCP-Zugang auf `127.0.0.1`.
 
 **Aufnahmeschutz ist keine Garantie.** Das Overlay setzt `NSWindow.sharingType = .none`, aber moderne Aufnahme- und Konferenz-Apps (ScreenCaptureKit) können das ignorieren; Apple bietet keinen universellen Schutz ([Apple DTS, Juli 2025](https://developer.apple.com/forums/thread/792152)). Vor einem Termin mit genau deiner App testen, lieber ein einzelnes Fenster teilen oder den Prompter auf einen nicht geteilten Bildschirm legen.
 
@@ -90,7 +90,7 @@ Die iOS-App **macprompter Remote** steuert Start, Pause, Tempo, Scrollen und Fol
 
 ## Mit KI entwickelt
 
-macprompter entsteht überwiegend mit KI-Coding-Agents (vor allem Claude Code). Der Maintainer gibt Richtung und Anforderungen vor, testet die App im Alltag und entscheidet über Releases und Beiträge; jede Änderung muss rund 240 automatische Tests bestehen. Die App selbst nutzt keine Cloud-KI. Ausführlich: [docs/AI.md](docs/AI.md).
+macprompter entsteht überwiegend mit KI-Coding-Agents (vor allem Claude Code). Der Maintainer gibt Richtung und Anforderungen vor, testet die App im Alltag und entscheidet über Releases und Beiträge; jede Änderung muss rund 255 automatische Tests bestehen. Die App selbst nutzt keine Cloud-KI. Ausführlich: [docs/AI.md](docs/AI.md).
 
 ## Selbst bauen
 
@@ -107,7 +107,7 @@ scripts/install.sh               # geprüfte Release-Version nach /Applications
 
 **iPhone-App:** Schema „macprompter Remote“. Für ein echtes Gerät `MacPrompterRemote/Signing.local.xcconfig` mit `DEVELOPMENT_TEAM = <Team-ID>`, `CODE_SIGN_STYLE = Automatic` und `CODE_SIGN_IDENTITY = Apple Development` anlegen (bei Bedarf eigene `PRODUCT_BUNDLE_IDENTIFIER`). Details: [docs/REMOTE.md](docs/REMOTE.md).
 
-**Tests:** 239 XCTests prüfen Wortausrichtung, Bewegungssperre, Speicher, Präsentationen, Fernbedienung samt verschlüsseltem Loopback-Durchlauf, MCP und lokale Spracherkennung mit synthetischem Audio (ohne installiertes Modell übersprungen). Mikrofon mit echter Sprache, mehrere Displays und Konferenz-Apps lassen sich nicht automatisch prüfen: [docs/VALIDATION.md](docs/VALIDATION.md).
+**Tests:** 255 XCTests prüfen Wortausrichtung, Bewegungssperre, Speicher, Präsentationen, Fernbedienung samt verschlüsseltem Loopback-Durchlauf, MCP und lokale Spracherkennung mit synthetischem Audio (ohne installiertes Modell übersprungen). Mikrofon mit echter Sprache, mehrere Displays und Konferenz-Apps lassen sich nicht automatisch prüfen: [docs/VALIDATION.md](docs/VALIDATION.md).
 
 | Dokument | Inhalt |
 | --- | --- |

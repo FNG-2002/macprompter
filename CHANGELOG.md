@@ -4,8 +4,23 @@ Alle nennenswerten Änderungen. Format nach [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Hinzugefügt
+- Spracherkennung in allen Sprachen, die Apples lokales Diktat auf dem Mac anbietet (auf macOS 26 zum Beispiel Französisch, Spanisch, Italienisch, Niederländisch, Polnisch, Türkisch und weitere), statt nur Deutsch und Englisch. Weiterhin vollständig auf dem Gerät; fehlt ein Sprachmodell, lädt macOS es beim ersten Take. Sprachen ohne Leerzeichen zwischen Wörtern (Japanisch, Chinesisch, Thai) sind noch nicht dabei.
+- Sprachvorschlag: Ist ein Skript eindeutig in einer anderen Sprache geschrieben, bietet die Seitenleiste „Text klingt nach … · übernehmen“ an.
+- Markierung im Sprechtempo vorziehen (Einstellungen → Lesen, standardmäßig an): Im Modus Stimme läuft die Markierung in deinem Tempo mit und liegt auf dem Wort, das du gerade sagst, statt etwa ein Wort hinter dir. Höchstens zwei Wörter voraus; bei Stille oder wenn du vom Skript abweichst, bleibt sie stehen und springt nie von selbst zurück.
+- Update-Suche (standardmäßig an, abschaltbar unter Einstellungen → Über macprompter): Einmal am Tag fragt die App bei GitHub nach der neuesten Versionsnummer und zeigt in der Bibliothek einen Hinweis, wenn es eine neue Version gibt. Hilfe → „Nach Updates suchen …“ prüft sofort. Installiert wird nichts automatisch.
+- Lesekomfort: Schriften als Kacheln mit den neuen Schriften Serif und Mono, schnelle Größen S/M/L/XL neben dem Regler und sechs Textfarben. Die Vorschau zeigt Schrift, Größe, Farbe und Markierung so, wie sie im Prompter erscheinen.
+
 ### Geändert
+- Modus Stimme: Bereits gesprochener Text wird abgedunkelt, der Text, der noch kommt, bleibt hell. Das aktuelle Wort liegt auf einem halbtransparenten Kasten in der Akzentfarbe.
+- Der Prompter wächst beim Einblenden aus der Notch und zieht sich beim Ausblenden zurück; der Countdown zählt animiert. Mit „Bewegung reduzieren“ wird nur kurz überblendet.
+- Die Bibliothek zeigt Sprachen kurz („Deutsch“, „Englisch“), Varianten mit Region („Deutsch (Schweiz)“).
+- Der MCP-Zugang akzeptiert alle Sprachcodes (z. B. `fr`, `tr`, `de-CH`) statt nur `de` und `en`.
 - Entwicklung: Lokale Testversionen (`scripts/install.sh`) werden mit demselben Projektzertifikat signiert wie die Releases. Testversion und Release ersetzen sich gegenseitig, ohne dass macOS erneut nach Mikrofon oder Eingabeüberwachung fragt. Das Zertifikat wurde dafür neu ausgestellt; wer 1.0.0 installiert hat, bestätigt die Freigaben beim nächsten Update einmal neu.
+
+### Behoben
+- Die Seitenleiste wurde beim Wechsel des Modus kurz breiter, wenn Scrollbalken dauerhaft eingeblendet sind (z. B. mit angeschlossener Maus).
+- Wörter aus zerlegt gespeicherten Umlauten (etwa aus kopierten Dateinamen) zerfielen in zwei Wörter und wurden von der Sprachsteuerung nicht erkannt.
 
 ## [1.0.0] – 2026-11-09
 

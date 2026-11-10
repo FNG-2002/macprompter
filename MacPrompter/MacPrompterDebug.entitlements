@@ -6,6 +6,6 @@
 <key>com.apple.security.files.user-selected.read-write</key><true/>
 <key>com.apple.security.files.bookmarks.app-scope</key><true/>
 <key>com.apple.security.network.server</key><true/>
-<!-- Debug/test host only: the loopback remote-control test connects to its own listener. -->
+<!-- Update check (ADR-29); the loopback remote-control test also connects to its own listener. -->
 <key>com.apple.security.network.client</key><true/>
 </dict></plist>

@@ -21,6 +21,10 @@ final class OverlayController: NSObject, NSWindowDelegate {
     private var positioning = false
     private var scrollTap: ScrollWheelTap?
     private(set) var isMonitoringScrollWheel = false
+    let reveal = OverlayReveal(shown: false)
+    /// True while the hide animation runs; the panel is still on screen.
+    private var isHiding = false
+    private var visibilityGeneration = 0
 
     init(model: AppModel) {
         self.model = model
@@ -53,14 +57,34 @@ final class OverlayController: NSObject, NSWindowDelegate {
             panel.onScrollWheel = { [weak self] in self?.scroll($0) }
             self.panel = panel
         }
+        visibilityGeneration &+= 1
+        isHiding = false
         reposition()
         panel?.orderFrontRegardless()
         updateScrollMonitor()
+        // Let the first frame render collapsed, then grow out of the notch.
+        DispatchQueue.main.async { [weak self, generation = visibilityGeneration] in
+            guard let self, self.visibilityGeneration == generation, !self.reveal.shown else { return }
+            withAnimation(self.reveal.animation(showing: true, reduced: self.reducesMotion)) { self.reveal.shown = true }
+        }
     }
 
     func hide() {
-        panel?.orderOut(nil)
+        visibilityGeneration &+= 1
+        let generation = visibilityGeneration
+        isHiding = panel?.isVisible == true
         updateScrollMonitor()
+        guard isHiding else { reveal.shown = false; return }
+        withAnimation(reveal.animation(showing: false, reduced: reducesMotion)) { reveal.shown = false }
+        DispatchQueue.main.asyncAfter(deadline: .now() + OverlayReveal.hideSeconds) { [weak self] in
+            guard let self, self.visibilityGeneration == generation else { return }
+            self.isHiding = false
+            self.panel?.orderOut(nil)
+        }
+    }
+
+    private var reducesMotion: Bool {
+        model.preferences.value.reduceMotion || NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
     func scroll(_ event: NSEvent) {
@@ -71,7 +95,7 @@ final class OverlayController: NSObject, NSWindowDelegate {
     /// that do not scroll and over the presentation windows. Other apps keep
     /// receiving them. Requires Input Monitoring.
     func updateScrollMonitor(reinstall: Bool = false) {
-        let wanted = panel?.isVisible == true && model.preferences.value.scrollWheelAnywhere
+        let wanted = panel?.isVisible == true && !isHiding && model.preferences.value.scrollWheelAnywhere
         if reinstall || !wanted { scrollTap?.invalidate(); scrollTap = nil }
         isMonitoringScrollWheel = wanted
         guard wanted, scrollTap == nil else { return }
@@ -117,9 +141,9 @@ final class OverlayController: NSObject, NSWindowDelegate {
         panel.isMovableByWindowBackground = !prefs.docked
         panel.setFrame(NSRect(origin: origin, size: CGSize(width: width, height: height)), display: true)
         if let hostingView {
-            if currentInset != inset { hostingView.rootView = OverlayView(model: model, topInset: inset) }
+            if currentInset != inset { hostingView.rootView = OverlayView(model: model, topInset: inset, reveal: reveal) }
         } else {
-            let view = NSHostingView(rootView: OverlayView(model: model, topInset: inset))
+            let view = NSHostingView(rootView: OverlayView(model: model, topInset: inset, reveal: reveal))
             hostingView = view
             panel.contentView = view
         }
