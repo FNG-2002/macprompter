@@ -4,6 +4,16 @@ Alle nennenswerten Änderungen. Format nach [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [1.1.0] – 2026-11-10
+
+macprompter folgt deiner Stimme jetzt in vielen Sprachen und ohne spürbaren Rückstand: Die Markierung liegt auf dem Wort, das du gerade sagst, bereits Gelesenes tritt zurück, und Schrift, Größe und Farbe stellst du mit einem Klick ein. Außerdem sagt dir die App künftig selbst, wenn es eine neue Version gibt.
+
+### Highlights
+- **Viele Sprachen, weiter lokal:** alle Sprachen von Apples On-Device-Diktat statt nur Deutsch und Englisch, mit Vorschlag passend zum Skript.
+- **Markierung ohne Rückstand:** läuft in deinem Sprechtempo mit, bleibt bei Pausen und freier Rede stehen.
+- **Lesekomfort:** abgedunkelter gelesener Text, neue Schriften und Textfarben, Live-Vorschau.
+- **Update-Hinweis:** einmal am Tag ein Blick auf GitHub, abschaltbar.
+
 ### Hinzugefügt
 - Spracherkennung in allen Sprachen, die Apples lokales Diktat auf dem Mac anbietet (auf macOS 26 zum Beispiel Französisch, Spanisch, Italienisch, Niederländisch, Polnisch, Türkisch und weitere), statt nur Deutsch und Englisch. Weiterhin vollständig auf dem Gerät; fehlt ein Sprachmodell, lädt macOS es beim ersten Take. Sprachen ohne Leerzeichen zwischen Wörtern (Japanisch, Chinesisch, Thai) sind noch nicht dabei.
 - Sprachvorschlag: Ist ein Skript eindeutig in einer anderen Sprache geschrieben, bietet die Seitenleiste „Text klingt nach … · übernehmen“ an.
@@ -16,11 +26,24 @@ Alle nennenswerten Änderungen. Format nach [Keep a Changelog](https://keepachan
 - Der Prompter wächst beim Einblenden aus der Notch und zieht sich beim Ausblenden zurück; der Countdown zählt animiert. Mit „Bewegung reduzieren“ wird nur kurz überblendet.
 - Die Bibliothek zeigt Sprachen kurz („Deutsch“, „Englisch“), Varianten mit Region („Deutsch (Schweiz)“).
 - Der MCP-Zugang akzeptiert alle Sprachcodes (z. B. `fr`, `tr`, `de-CH`) statt nur `de` und `en`.
-- Entwicklung: Lokale Testversionen (`scripts/install.sh`) werden mit demselben Projektzertifikat signiert wie die Releases. Testversion und Release ersetzen sich gegenseitig, ohne dass macOS erneut nach Mikrofon oder Eingabeüberwachung fragt. Das Zertifikat wurde dafür neu ausgestellt; wer 1.0.0 installiert hat, bestätigt die Freigaben beim nächsten Update einmal neu.
+- Entwicklung: Lokale Testversionen (`scripts/install.sh`) werden mit demselben Projektzertifikat signiert wie die Releases, sodass sich Testversion und Release ohne neue Freigaben ersetzen.
 
 ### Behoben
 - Die Seitenleiste wurde beim Wechsel des Modus kurz breiter, wenn Scrollbalken dauerhaft eingeblendet sind (z. B. mit angeschlossener Maus).
 - Wörter aus zerlegt gespeicherten Umlauten (etwa aus kopierten Dateinamen) zerfielen in zwei Wörter und wurden von der Sprachsteuerung nicht erkannt.
+
+### Hinweise zum Update
+- **Neue Berechtigung:** Für die Update-Suche darf die App ausgehende Verbindungen aufbauen. Sie fragt einmal am Tag nur die neueste Versionsnummer bei GitHub ab; dabei sieht GitHub deine IP-Adresse, aber nichts über dich oder deine Skripte. Abschalten unter Einstellungen → Über macprompter.
+- **Markierung im Sprechtempo vorziehen** ist neu und standardmäßig an. Wer die bisherige, rein an erkannten Wörtern ausgerichtete Markierung möchte, schaltet sie unter Einstellungen → Lesen ab.
+- Skripte, Einstellungen und Freigaben bleiben erhalten; das Datenformat ist abwärtskompatibel. Wer die allererste Download-Datei von 1.0.0 installiert hat (vor dem Neu-Signieren am 9. November), bestätigt Mikrofon und Eingabeüberwachung einmal neu.
+- Die App ist weiterhin nicht von Apple notarisiert; nach dem Installieren den ersten Start bei Bedarf unter Systemeinstellungen → Datenschutz & Sicherheit → „Dennoch öffnen“ bestätigen.
+
+### Bekannte Grenzen
+- Sprachen außer Deutsch und Englisch sind nur automatisch geprüft, nicht mit echtem Mikrofon. Zahlen als Wörter („drei“ für „3“) gleicht die App nur auf Deutsch und Englisch an; die Rückkehr nach Umformulierungen gibt es ebenfalls nur dort.
+- Japanisch, Chinesisch und Thai werden noch nicht angeboten.
+- Die vorgezogene Markierung kann kurz bis zu zwei Wörter vor der tatsächlichen Stelle stehen, etwa wenn du mitten im Satz abbrichst.
+- Den Update-Hinweis sehen Nutzer erst ab dieser Version; wer 1.0.0 nutzt, erfährt von 1.1.0 nur über GitHub.
+- Die Oberfläche ist weiterhin nur auf Deutsch.
 
 ## [1.0.0] – 2026-11-09
 
