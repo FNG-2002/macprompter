@@ -4,21 +4,23 @@ Releases baut und veröffentlicht GitHub Actions ([`.github/workflows/release.ym
 
 ## Ablauf
 
-1. **Release-PR** (Branch `chore/release-x.y.z`):
+1. **Release-PR** (Branch `chore/release-x.y.z`; eine kleine Korrektur darf im selben PR wie das Release kommen, das spart CI-Läufe):
    - `MARKETING_VERSION` in `scripts/generate_project.py` erhöhen, `CURRENT_PROJECT_VERSION` (Build-Nummer) um 1 erhöhen, `python3 scripts/generate_project.py`.
    - In `CHANGELOG.md` den Inhalt von `[Unreleased]` in einen neuen Abschnitt `## [x.y.z] – JJJJ-MM-TT` verschieben und Release-Notes schreiben (siehe unten). `[Unreleased]` bleibt leer stehen.
    - `docs/VALIDATION.md`: datierter Abschnitt mit Testanzahl und dem, was manuell offen ist.
    - `scripts/check.sh --release` lokal grün, PR mergen.
-2. **Tag setzen** auf dem gemergten `main`:
+2. **Tag setzen** auf dem gemergten `main`, sobald CI auf `main` grün ist (`gh run list --branch main --limit 1`); dann übernimmt der Release-Workflow dieses Ergebnis statt erneut zu testen (ADR-32):
    ```sh
    git switch main && git pull --ff-only
    python3 scripts/release_notes.py --check vX.Y.Z
    git tag -a vX.Y.Z -m "macprompter X.Y.Z" && git push origin vX.Y.Z
    ```
-3. **GitHub Actions** prüft, dass Tag, App-Version und CHANGELOG zusammenpassen und der Tag auf `main` liegt, führt alle Tests aus, baut die universelle Release-App, signiert sie, packt `macprompter-X.Y.Z.dmg` samt SHA-256-Prüfsumme und veröffentlicht das GitHub-Release mit den Notes aus dem CHANGELOG. Dauer etwa 10 Minuten: `gh run watch`.
+3. **GitHub Actions** prüft, dass Tag, App-Version und CHANGELOG zusammenpassen und der Tag auf `main` liegt, führt alle Tests aus, sofern CI denselben Commit nicht schon grün getestet hat, baut die universelle Release-App, signiert sie, packt `macprompter-X.Y.Z.dmg` samt SHA-256-Prüfsumme und veröffentlicht das GitHub-Release mit den Notes aus dem CHANGELOG. Dauer etwa 10 Minuten: `gh run watch`.
 4. **Kontrolle:** Release-Seite ansehen, DMG herunterladen, installieren, starten (`docs/VALIDATION.md`, „Auf einem echten Mac prüfen“).
 
 Ein manueller Lauf (`gh workflow run release.yml`) und Pull Requests, die die Release-Pipeline ändern, bauen nur eine Test-DMG als Workflow-Artefakt und veröffentlichen nichts.
+
+Den Abschnitt in `docs/VALIDATION.md` schreibt man vor dem Tag; die Kontrolle nach der Veröffentlichung wird mit dem nächsten PR nachgetragen statt mit einem eigenen.
 
 ## Release-Notes: Mindestanforderungen
 
