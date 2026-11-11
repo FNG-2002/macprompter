@@ -285,3 +285,10 @@ Automatische Sprachumschaltung innerhalb eines Skripts, Sprechererkennung, indiv
 - **Manuell offen:** wie im Abschnitt vom 10.11.2026; zusätzlich nach Veröffentlichung DMG laden, Prüfsumme vergleichen, über 1.0.0 installieren und prüfen, dass Freigaben und Bibliothek erhalten bleiben und Hilfe → „Nach Updates suchen …“ „aktuell“ meldet.
 - Veröffentlicht am 10.11.2026 über den Tag `v1.1.0` (Workflow erfolgreich). DMG von GitHub geladen: Prüfsumme stimmt, `codesign --verify --strict --deep` erfolgreich, Version 1.1.0 (2), Designated Requirement identisch mit der installierten Version (`certificate leaf = H"910799…463f"`), Berechtigungen `network.client` und `network.server`, kein `get-task-allow`. Die GitHub-API meldet `v1.1.0` als neuestes Release.
 
+## Release 1.1.1 · 11.11.2026
+
+- Inhalt: Folienwechsel von Hand mitten im Satz im Modus Stimme (kein Rücksprung, abgedunkelter Text vor dem Sprung) und CI, die jeden Stand nur einmal testet (ADR-32). Version 1.1.1, Build 3.
+- Drei neue Regressionstests stellen den gemeldeten Fall nach; ohne Fix schlugen die beiden Sprachtests mit Rücksprung auf „Produkt“ bzw. „Funktionen“ und Zurückscrollen fehl. Lokal unter macOS 27 / Xcode 27.1: 258 Tests bestanden, `scripts/check.sh --release` erfolgreich.
+- `scripts/ci_reuse.sh` gegen die Läufe von 1.1.0 geprüft: Doku-PR, Merge-Pushes und Tag `v1.1.0` wären übersprungen worden, PRs und manuelle Läufe nicht.
+- Vom Maintainer mit der installierten Testversion und echtem Mikrofon geprüft: kein Rücksprung nach Folienwechsel mitten im Satz („hat geklappt“), Text vor [Weiter] bleibt grau („klappt jetzt“).
+- **Manuell offen:** nach Veröffentlichung DMG laden, Prüfsumme und Signatur prüfen, über 1.1.0 installieren; in der Release-Ausgabe kontrollieren, dass der Testschritt übersprungen wurde.

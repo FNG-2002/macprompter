@@ -90,7 +90,7 @@ Die iOS-App **macprompter Remote** steuert Start, Pause, Tempo, Scrollen und Fol
 
 ## Mit KI entwickelt
 
-macprompter entsteht überwiegend mit KI-Coding-Agents (vor allem Claude Code). Der Maintainer gibt Richtung und Anforderungen vor, testet die App im Alltag und entscheidet über Releases und Beiträge; jede Änderung muss rund 255 automatische Tests bestehen. Die App selbst nutzt keine Cloud-KI. Ausführlich: [docs/AI.md](docs/AI.md).
+macprompter entsteht überwiegend mit KI-Coding-Agents (vor allem Claude Code). Der Maintainer gibt Richtung und Anforderungen vor, testet die App im Alltag und entscheidet über Releases und Beiträge; jede Änderung muss rund 258 automatische Tests bestehen. Die App selbst nutzt keine Cloud-KI. Ausführlich: [docs/AI.md](docs/AI.md).
 
 ## Selbst bauen
 
@@ -107,7 +107,7 @@ scripts/install.sh               # geprüfte Release-Version nach /Applications
 
 **iPhone-App:** Schema „macprompter Remote“. Für ein echtes Gerät `MacPrompterRemote/Signing.local.xcconfig` mit `DEVELOPMENT_TEAM = <Team-ID>`, `CODE_SIGN_STYLE = Automatic` und `CODE_SIGN_IDENTITY = Apple Development` anlegen (bei Bedarf eigene `PRODUCT_BUNDLE_IDENTIFIER`). Details: [docs/REMOTE.md](docs/REMOTE.md).
 
-**Tests:** 255 XCTests prüfen Wortausrichtung, Bewegungssperre, Speicher, Präsentationen, Fernbedienung samt verschlüsseltem Loopback-Durchlauf, MCP und lokale Spracherkennung mit synthetischem Audio (ohne installiertes Modell übersprungen). Mikrofon mit echter Sprache, mehrere Displays und Konferenz-Apps lassen sich nicht automatisch prüfen: [docs/VALIDATION.md](docs/VALIDATION.md).
+**Tests:** 258 XCTests prüfen Wortausrichtung, Bewegungssperre, Speicher, Präsentationen, Fernbedienung samt verschlüsseltem Loopback-Durchlauf, MCP und lokale Spracherkennung mit synthetischem Audio (ohne installiertes Modell übersprungen). Mikrofon mit echter Sprache, mehrere Displays und Konferenz-Apps lassen sich nicht automatisch prüfen: [docs/VALIDATION.md](docs/VALIDATION.md).
 
 | Dokument | Inhalt |
 | --- | --- |

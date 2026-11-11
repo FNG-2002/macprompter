@@ -4,6 +4,21 @@ Alle nennenswerten Änderungen. Format nach [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+## [1.1.1] – 2026-11-11
+
+Eine Korrekturversion für alle, die mit Sprachsteuerung präsentieren: Wechselst du mitten im Satz per Taste, Klicker oder iPhone die Folie, bleibt der Text jetzt auf der gewählten Folie, statt zurückzuspringen und hängen zu bleiben. Übersprungener Text bleibt dabei abgedunkelt wie gesprochener.
+
+### Behoben
+- Modus Stimme: Ein Folienwechsel von Hand mitten im Satz ließ den Text zurück auf die vorige Folie springen; die Markierung blieb dort hängen, bis sie wieder Anschluss fand. Ursache: Die Spracherkennung liefert den laufenden Satz immer wieder komplett, und die bereits gehörten Wörter galten nach dem Sprung als neu. Jetzt bleiben sie verbraucht, und nach einem Folienwechsel von Hand springt die Sprachsteuerung nie vor den Anfang der gewählten Folie zurück. Den angefangenen Satz kannst du also zu Ende sprechen.
+- „Im Sprechtempo scrollen“ und „Markierung im Sprechtempo vorziehen“ rechneten nach einem Folienwechsel noch mit der alten Stelle und zogen Text oder Markierung zurück.
+- Modus Stimme: Nach einem Sprung zur nächsten Folie oder über ein [Weiter] wurde der Text davor wieder hell. Er bleibt jetzt abgedunkelt, als hättest du ihn gesprochen; springst du zurück, wird der Text ab dort wieder hell.
+
+### Geändert
+- Entwicklung: Jede Änderung wird in GitHub Actions nur noch einmal getestet. Der Lauf nach dem Merge und der Release-Lauf übernehmen ein grünes Ergebnis für denselben Stand; reine Doku-Änderungen brauchen keinen macOS-Build.
+
+### Bekannte Grenzen
+- Mit echtem Mikrofon nur auf einem Mac geprüft. Gelesener Text vor einer Stelle, die du von Hand mit Scrollrad oder Pfeiltasten ansteuerst, wird nicht nachträglich abgedunkelt.
+
 ## [1.1.0] – 2026-11-10
 
 macprompter folgt deiner Stimme jetzt in vielen Sprachen und ohne spürbaren Rückstand: Die Markierung liegt auf dem Wort, das du gerade sagst, bereits Gelesenes tritt zurück, und Schrift, Größe und Farbe stellst du mit einem Klick ein. Außerdem sagt dir die App künftig selbst, wenn es eine neue Version gibt.

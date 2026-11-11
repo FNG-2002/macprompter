@@ -60,7 +60,7 @@ def configs(name, shared, debug=None, base=None):
         baseref='baseConfigurationReference = '+base+'; ' if base else ''
         ids.append(add(name+config,'{isa = XCBuildConfiguration; '+baseref+'buildSettings = {'+content+'}; name = '+config+'; }'))
     return add(name+'configs','{isa = XCConfigurationList; buildConfigurations = '+arr(ids)+'; defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }')
-pc=configs('project',{'SDKROOT':'macosx','MACOSX_DEPLOYMENT_TARGET':'26.0','SWIFT_VERSION':'6.0','CLANG_ENABLE_MODULES':'YES','ENABLE_USER_SCRIPT_SANDBOXING':'YES','SWIFT_STRICT_CONCURRENCY':'complete','MARKETING_VERSION':'1.1.0','CURRENT_PROJECT_VERSION':'2'},{'ENABLE_TESTABILITY':'YES','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'DEBUG'})
+pc=configs('project',{'SDKROOT':'macosx','MACOSX_DEPLOYMENT_TARGET':'26.0','SWIFT_VERSION':'6.0','CLANG_ENABLE_MODULES':'YES','ENABLE_USER_SCRIPT_SANDBOXING':'YES','SWIFT_STRICT_CONCURRENCY':'complete','MARKETING_VERSION':'1.1.1','CURRENT_PROJECT_VERSION':'3'},{'ENABLE_TESTABILITY':'YES','SWIFT_ACTIVE_COMPILATION_CONDITIONS':'DEBUG'})
 ac=configs('app',{'PRODUCT_NAME':'macprompter','PRODUCT_MODULE_NAME':'MacPrompter','PRODUCT_BUNDLE_IDENTIFIER':'io.github.fng-2002.macprompter','INFOPLIST_FILE':'MacPrompter/Info.plist','CODE_SIGN_ENTITLEMENTS':'MacPrompter/MacPrompter.entitlements','CODE_SIGN_STYLE':'Manual','CODE_SIGN_IDENTITY':'-','COMBINE_HIDPI_IMAGES':'YES','ENABLE_HARDENED_RUNTIME':'YES','LD_RUNPATH_SEARCH_PATHS':'$(inherited) @executable_path/../Frameworks','SWIFT_EMIT_LOC_STRINGS':'YES','COPY_PHASE_STRIP':'NO'},
     # Debug is also the test host: only it may open outgoing connections (loopback remote test).
     {'CODE_SIGN_ENTITLEMENTS':'MacPrompter/MacPrompterDebug.entitlements'})
