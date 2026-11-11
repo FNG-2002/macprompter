@@ -27,6 +27,7 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: write
+      checks: read
     env:
       PUBLISH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
     steps:
@@ -45,8 +46,16 @@ jobs:
           python3 scripts/generate_project.py
           git diff --exit-code -- MacPrompter.xcodeproj
 
-      - name: Build and test
+      # The tagged commit was normally tested by CI on main already.
+      - name: Already tested on main
+        id: reuse
         if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci_reuse.sh
+
+      - name: Build and test
+        if: env.PUBLISH == 'true' && steps.reuse.outputs.skip != 'true'
         run: scripts/check.sh
 
       # Developer ID (with notarization) once the maintainer has an Apple Developer

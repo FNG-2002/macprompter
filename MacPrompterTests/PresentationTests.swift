@@ -238,6 +238,114 @@ final class PresentationSessionTests: XCTestCase {
         session.hide()
     }
 
+    /// Regression: clicking to the next slide mid-sentence. The recognizer keeps
+    /// repeating the sentence's earlier words, and the speaker often finishes
+    /// it; neither may pull the text back to the previous slide.
+    func testManualSlideMidSentenceStaysOnChosenSlide() throws {
+        let session = makeSession(mode: .voice, spoken: [
+            "Heute zeige ich euch unser neues Produkt und seine wichtigsten Funktionen",
+            "Die Zahlen für das dritte Quartal sind deutlich gestiegen",
+            "Vielen Dank fürs Zuhören"])
+        let body = session.script.body as NSString
+        session.maximumOffset = 1000
+        session.receiveTranscript("Heute zeige ich euch unser", segment: 0, endTime: 1)
+        XCTAssertEqual(session.activeWordRange?.location, body.range(of: "unser").location)
+        session.stepSlide(1)
+        let anchor = try XCTUnwrap(session.slideTimeline?.anchor(forPage: 1))
+        session.resolveJump(240, for: anchor)
+        for heard in ["Heute zeige ich euch unser neues Produkt",
+                      "Heute zeige ich euch unser neues Produkt und seine wichtigsten Funktionen"] {
+            session.receiveTranscript(heard, segment: 0, endTime: 2)
+            XCTAssertNil(session.activeWordRange, "no jump back for: \(heard)")
+            XCTAssertEqual(session.currentSlide, 1)
+            session.advanceReading(by: 0.5)
+            XCTAssertEqual(session.offset, 240)
+        }
+        session.receiveTranscript("Die Zahlen für das dritte", segment: 3, endTime: 4)
+        XCTAssertEqual(session.activeWordRange?.location, body.range(of: "dritte").location)
+        XCTAssertEqual(session.currentSlide, 1)
+        session.hide()
+    }
+
+    /// Regression: after stepping on at a [Weiter] cue the text before it lit
+    /// up again. It stays dimmed as if spoken; stepping back brightens it.
+    func testManualStepKeepsEarlierTextDimmed() async throws {
+        let preferences = PreferenceStore(defaults: UserDefaults(suiteName: UUID().uuidString)!)
+        preferences.value.mode = .voice
+        let session = PrompterSession(preferences: preferences)
+        var presentation = deck(["A", "B", "C"], spoken: ["Erst der Markt heute. [Weiter] Dann unser Anteil.", "", "Vielen Dank."])
+        presentation.groupWithNext(presentation.sections[0].id)
+        var script = Script(title: "Talk", body: "")
+        script.presentation = presentation
+        script.body = PresentationComposer.compose(presentation).body
+        session.script = script
+        session.reset()
+        session.gate = PlaybackGate(isVisible: true, isPlaying: true, isHovering: false, countdown: 0)
+        let host = NSHostingView(rootView: ReaderView(session: session, preferences: preferences.value))
+        host.frame = NSRect(x: 0, y: 0, width: 500, height: 300)
+        host.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(30))
+        func reader(in view: NSView) -> ReaderViewport? {
+            if let reader = view as? ReaderViewport { return reader }
+            return view.subviews.lazy.compactMap { reader(in: $0) }.first
+        }
+        let viewport = try XCTUnwrap(reader(in: host))
+        let text = try XCTUnwrap((viewport.subviews.first as? NSClipView)?.documentView as? NSTextView)
+        let manager = try XCTUnwrap(text.layoutManager)
+        let body = script.body as NSString
+        func dimmed(_ word: String) -> Bool {
+            (manager.temporaryAttribute(.foregroundColor, atCharacterIndex: body.range(of: word).location, effectiveRange: nil) as? NSColor).map { abs(Double($0.alphaComponent) - ScriptStyle.spokenAlpha) < 0.001 } ?? false
+        }
+        session.receiveTranscript("Erst der", segment: 0, endTime: 1)
+        session.stepSlide(1)
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertNil(session.activeWordRange)
+        XCTAssertTrue(dimmed("Markt"), "skipped text before [Weiter] counts as spoken")
+        XCTAssertTrue(dimmed("heute"))
+        XCTAssertFalse(dimmed("Dann"), "the chosen step is still to read")
+        session.receiveTranscript("Dann unser", segment: 2, endTime: 3)
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertTrue(dimmed("Dann"))
+        XCTAssertTrue(dimmed("heute"))
+        session.stepSlide(-1)
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertFalse(dimmed("Markt"), "stepping back brightens the text again")
+        XCTAssertFalse(dimmed("Dann"))
+        session.hide()
+    }
+
+    /// Regression: the speaking-pace estimate of the old slide used to scroll
+    /// the text back after a manual slide change.
+    func testManualSlideDropsSpeakingPaceOfPreviousPosition() throws {
+        let session = makeSession(mode: .voice, spoken: [
+            "Moderne Speicher liefern nachhaltige Energie für unsere gemeinsame Zukunft",
+            "Die Zahlen für das dritte Quartal sind deutlich gestiegen",
+            "Vielen Dank fürs Zuhören"])
+        session.preferences.value.speechPacedScrolling = true
+        session.maximumOffset = 10_000
+        session.voiceGeometry = { $0 }
+        let words = ["Moderne", "Speicher", "liefern", "nachhaltige", "Energie", "für"]
+        var frame = 0
+        func tick(_ count: Int) {
+            for _ in 0..<count {
+                frame += 1
+                session.speech.level = frame % 3 == 0 ? 0.04 : 0.6
+                session.advanceReading(by: 0.05)
+            }
+        }
+        for count in 1...words.count {
+            session.receiveTranscript(words.prefix(count).joined(separator: " "), segment: 0, endTime: Double(count) * 0.35)
+            tick(7)
+        }
+        XCTAssertGreaterThan(session.offset, 0)
+        session.stepSlide(1)
+        let anchor = try XCTUnwrap(session.slideTimeline?.anchor(forPage: 1))
+        session.resolveJump(Double(anchor), for: anchor)
+        tick(40)
+        XCTAssertEqual(session.offset, Double(anchor), "stays on the chosen slide")
+        session.hide()
+    }
+
     func testScrollingModesFollowFocusLineAndAdoptManualJump() {
         let session = makeSession(mode: .automatic)
         let body = session.script.body as NSString

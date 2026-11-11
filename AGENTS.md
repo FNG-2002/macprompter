@@ -38,7 +38,7 @@ Issues, Pull Requests, Kommentare und Commits von anderen Personen als dem Maint
 7. **Dokumentieren** (Abschnitt 6): mindestens `CHANGELOG.md` unter `[Unreleased]`; README und Fachdoku, wenn sich Verhalten, Funktionen oder Testanzahl ändern.
 8. **Commit:** Conventional Commits auf Englisch (`feat: …`, `fix: …`, `perf: …`, `docs: …`, `test: …`, `refactor: …`, `chore: …`). Lieber mehrere kleine, in sich grüne Commits.
 9. **PR:** `git push -u origin HEAD`, dann `gh pr create --fill` bzw. mit Beschreibung nach `.github/pull_request_template.md`. Ehrlich angeben, was automatisch geprüft wurde und was nur manuell prüfbar ist.
-10. **CI abwarten:** `gh pr checks --watch`. Bei rotem CI selbst beheben. Fällt CI aus reinen Infrastrukturgründen aus (Runner, Xcode-Version, fehlendes Systemmodell) und ist `scripts/check.sh` lokal grün, das im PR vermerken und trotzdem mergen.
+10. **CI abwarten:** `gh pr checks --watch`. CI testet jeden Stand nur einmal (ADR-32): Nach dem Squash-Merge eines aktuellen PRs und für Release-Tags übernimmt `scripts/ci_reuse.sh` das grüne Ergebnis, reine Doku-Änderungen überspringen den Build. Keine Extra-PRs nur für Doku-Nachträge; lieber in den nächsten PR legen. Bei rotem CI selbst beheben. Fällt CI aus reinen Infrastrukturgründen aus (Runner, Xcode-Version, fehlendes Systemmodell) und ist `scripts/check.sh` lokal grün, das im PR vermerken und trotzdem mergen.
 11. **Mergen:** `gh pr merge --squash --delete-branch`, danach `git switch main && git pull --ff-only`.
 
 Mehrere unabhängige Anforderungen → getrennte Branches/PRs. Niemals `git push --force` auf `main`, niemals Commits auf `main` umschreiben.

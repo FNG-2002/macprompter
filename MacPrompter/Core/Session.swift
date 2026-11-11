@@ -14,6 +14,9 @@ final class PrompterSession {
     var maximumOffset = 0.0
     var targetCharacter: Int?
     var activeWordRange: NSRange?
+    /// Voice mode: text before this character counts as spoken while no word
+    /// is highlighted, e.g. right after a manual slide change.
+    private(set) var spokenThrough = 0
     var isOffScript = false
     private(set) var voiceDestination: Double?
     /// Slide sync for scripts linked to a PDF; nil for plain scripts.
@@ -144,7 +147,7 @@ final class PrompterSession {
         semanticWindows = []; semanticWindowAnchor = nil
         speechLatency = SpeechLatencyMetrics(); pendingHighlightSample = nil
         lead.reset(); voiceClock = 0; predictedWordIndex = nil
-        offset = 0; elapsed = 0; elapsedSeconds = 0; activeWordRange = nil
+        offset = 0; elapsed = 0; elapsedSeconds = 0; activeWordRange = nil; spokenThrough = 0
         voiceDestination = nil; isOffScript = false
         reachedScriptEnd = false; lastRecognitionAge = 0
         follower = ScriptFollower(text: script.body)
@@ -180,8 +183,13 @@ final class PrompterSession {
         adoptReadingSlide = preferences.value.mode != .voice
         voiceDestination = nil; targetCharacter = nil
         if preferences.value.mode == .voice {
-            follower.seek(character: anchor)
+            follower.seek(character: anchor, holdingFloor: true)
             activeWordRange = nil; reachedScriptEnd = false; isOffScript = false
+            spokenThrough = anchor
+            // The speaking-pace estimate and the predicted word still describe
+            // the old position; kept, they pull the text and highlight back.
+            lead.reset(); predictedWordIndex = nil
+            readingSlide = page
             ignoreSpeechThrough = speech.audioSeconds + 0.15
         }
         jumpCharacter = anchor
@@ -248,6 +256,7 @@ final class PrompterSession {
     func seekVoice(to character: Int) {
         invalidateSemanticRecovery()
         follower.seek(character: character)
+        spokenThrough = min(spokenThrough, character)
         reachedScriptEnd = false; isOffScript = false
         lead.reset(); predictedWordIndex = nil
     }

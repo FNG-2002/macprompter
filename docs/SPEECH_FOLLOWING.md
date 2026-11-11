@@ -16,6 +16,12 @@ Der sichtbare Text bewegt sich unabhängig von den Erkennungsereignissen. Jede b
 6. Nach vier nicht zugeordneten Wörtern zeigt die Sitzung einen freien Einschub an. Der lokale Anschluss bleibt verfügbar. Für einen sonstigen Wiedereinstieg, Rücksprünge oder Sprünge über mehr als 24 Wörter gelten weiter mindestens vier unverbrauchte Übereinstimmungen, zwei aussagekräftige Wörter, 78 % Übereinstimmung und zwei passende Schlusswörter. Eine eindeutige kurze Schlussphrase kann ebenfalls wieder einsteigen.
 7. Gleich gute entfernte Phrasen werden nicht erraten. Erst unterscheidende Folgewörter erlauben den Sprung. Die lokale Fortsetzung hat einen starken Vorrang; das ist eine bewusste Annahme über normales Lesen.
 
+### Folienwechsel von Hand
+
+Ein Folienwechsel per Taste, Klicker oder iPhone setzt die Position auf den Anfang der gewählten Folie (`ScriptFollower.seek(character:holdingFloor:)`). Der Erkenner liefert das laufende Audiosegment in jedem Teilresultat komplett; die vor dem Sprung schon gehörten Wörter gelten deshalb weiter als verbraucht, statt nach dem Sprung als neue Evidenz zu zählen. Zusätzlich darf die globale Suche bis zum nächsten Sprung nicht vor den Anfang der gewählten Folie zurückkehren. Spricht der Sprecher den angefangenen Satz der vorigen Folie zu Ende, gilt das als Einschub; die Markierung wartet auf den Text der neuen Folie. Vorlauf im Sprechtempo und vorgezogene Markierung beginnen neu. Text vor dem Sprung bleibt abgedunkelt (`PrompterSession.spokenThrough`), bis wieder ein Wort erkannt ist. Ein Sprung per Scrollrad setzt keine Untergrenze.
+
+(Eingeführt am 11. November 2026, Version 1.1.1.)
+
 ### Schreibweisen angleichen
 
 Bevor die Ausrichtung beginnt, bildet `LexicalBridge` gehörte Wörter auf die Schreibweise des Skripts ab. Apples Erkenner formatiert anders, als ein Skript oft geschrieben ist. Gemessen am 27. Oktober 2026 mit `SpeechTranscriber` und synthetischen Stimmen: kleine Zahlen als Wort („drei“, „zwölf“, „three“), größere als Ziffern („25“, „2026“, „112“), „Dr.“ für „Doktor“, englisch „25%“ und „email“, deutsch ausgeschrieben „zum Beispiel“, „das heißt“, „und so weiter“. Ohne Angleichung zählte jedes solche Wort als fremdes Wort. Weil beim Streaming meist genau das neueste Wort am Ende eines Teilresultats steht, hing die Markierung dann ein bis drei Wörter hinterher.

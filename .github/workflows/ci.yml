@@ -2,7 +2,9 @@ name: CI
 
 # Pull requests (including forks: GITHUB_TOKEN is read-only there and first-time
 # contributors need the maintainer's approval), pushes to main for the status
-# badge, and on demand.
+# badge, and on demand. scripts/ci_reuse.sh skips the build when the same tree
+# was already tested (squash merge of a green PR) or only docs changed; the
+# required "test" check still reports success.
 on:
   pull_request:
   push:
@@ -15,6 +17,8 @@ concurrency:
 
 permissions:
   contents: read
+  checks: read
+  pull-requests: read
 
 jobs:
   test:
@@ -22,11 +26,19 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Already tested or documentation only
+        id: reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: scripts/ci_reuse.sh "$BASE"
       - name: Project file is up to date
+        if: steps.reuse.outputs.skip != 'true'
         run: |
           python3 scripts/generate_project.py
           git diff --exit-code -- MacPrompter.xcodeproj
       - name: Build and test
+        if: steps.reuse.outputs.skip != 'true'
         run: scripts/check.sh
       - name: Upload log on failure
         if: failure()

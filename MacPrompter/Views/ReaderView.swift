@@ -64,7 +64,7 @@ struct ReaderView: View {
         // Establish observation in a SwiftUI body, not inside AppKit callbacks.
         // Pixel offsets intentionally bypass this bridge; semantic changes do not.
         ReaderBridge(session: session, preferences: preferences,
-            scriptBody: session.script.body, activeWord: session.activeWordRange,
+            scriptBody: session.script.body, activeWord: session.activeWordRange, spokenThrough: session.spokenThrough,
             target: session.targetCharacter, jump: session.jumpCharacter,
             running: session.gate.isVisible && session.gate.isPlaying
                 && !session.gate.isHovering && !session.isPreparing)
@@ -76,6 +76,7 @@ private struct ReaderBridge: NSViewRepresentable {
     var preferences: Preferences
     let scriptBody: String
     let activeWord: NSRange?
+    let spokenThrough: Int
     let target: Int?
     let jump: Int?
     let running: Bool
@@ -229,16 +230,19 @@ final class ReaderViewport: NSView {
     /// highlighter, and the text still to read keeps full brightness.
     private func updateWordHighlight() {
         let length = (lastBody as NSString).length
-        let range = lastPreferences?.mode == .voice ? session.activeWordRange.flatMap { NSMaxRange($0) <= length ? $0 : nil } : nil
+        let voice = lastPreferences?.mode == .voice
+        let range = voice ? session.activeWordRange.flatMap { NSMaxRange($0) <= length ? $0 : nil } : nil
+        // Without a highlighted word (right after a slide change) the text
+        // before the jump stays dimmed as if it had been spoken.
+        let dimmed = voice ? min(range?.location ?? session.spokenThrough, length) : 0
         defer { session.didApplyWordHighlight(highlightedRange) }
-        guard highlightedRange != range, let manager = text.layoutManager else { return }
+        guard highlightedRange != range || dimmed != dimmedLength, let manager = text.layoutManager else { return }
         // Temporary attributes never change glyph widths or text layout.
         if let old = highlightedRange {
             manager.removeTemporaryAttribute(.foregroundColor, forCharacterRange: old)
             manager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: old)
             redrawLines(of: old)
         }
-        let dimmed = min(range?.location ?? 0, length)
         if dimmed > dimmedLength {
             let color = (lastPreferences?.textColor ?? .white).nsColor.withAlphaComponent(ScriptStyle.spokenAlpha)
             manager.addTemporaryAttribute(.foregroundColor, value: color, forCharacterRange: NSRange(location: dimmedLength, length: dimmed - dimmedLength))
