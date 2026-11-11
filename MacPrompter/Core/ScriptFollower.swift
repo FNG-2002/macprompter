@@ -40,9 +40,19 @@ struct ScriptFollower {
         bridge = LexicalBridge(tokens: parsed, text: text)
     }
 
-    mutating func seek(character: Int) {
+    /// Speech never relocates before this word: set by a manual slide change,
+    /// so the rest of a sentence from the previous slide cannot pull back.
+    private(set) var floorIndex = 0
+
+    /// Words already heard in the running audio segment stay consumed: the
+    /// recognizer keeps repeating them in every later result of that segment.
+    mutating func seek(character: Int, holdingFloor: Bool = false) {
         nextIndex = tokens.firstIndex(where: { NSMaxRange($0.range) > character }) ?? tokens.count
-        resetEvidence()
+        floorIndex = holdingFloor ? nextIndex : 0
+        ignoredPrefix = previousWords.count; acceptedThrough = previousWords.count
+        precedingContext = []; precedingUncommitted = 0; allowedWords = []; surfaceContext = []
+        missedWords = 0; isOffScript = false; lastMatch = nil; hasFreshEvidence = false
+        lastInputWasDuplicate = false; nearMisses = [:]
     }
 
     mutating func resetEvidence() {
@@ -131,7 +141,7 @@ struct ScriptFollower {
         if let local, freshContentCount <= 2 || local.newMatches >= freshContentCount - 1 {
             return commit(local, wordsCount: consumed, freshStart: freshStart)
         }
-        let endpoints = occurrences[last] ?? []
+        let endpoints = (occurrences[last] ?? []).filter { $0 >= floorIndex }
         // An inverted word index makes even a distant re-entry cheap. Common
         // words get at most 240 candidate positions, nearest first.
         let candidates = nearestEndpoints(endpoints, limit: 240)
