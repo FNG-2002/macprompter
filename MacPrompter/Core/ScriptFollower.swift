@@ -43,6 +43,25 @@ struct ScriptFollower {
     /// Speech never relocates before this word: set by a manual slide change,
     /// so the rest of a sentence from the previous slide cannot pull back.
     private(set) var floorIndex = 0
+    /// Word indices a relocation may land on: about one prompter window
+    /// around the reading position, set by the session before each result.
+    /// A jump beyond what the speaker can see would ruin a presentation.
+    var reach: ClosedRange<Int>?
+    /// A distant jump waits for one more matching word (ADR-33). The end of
+    /// the phrase found in the previous result; nil without a pending jump.
+    private(set) var pendingJump: Int?
+    static let fallbackReach = 40
+
+    /// Word indices whose characters lie in `characters`.
+    func wordRange(in characters: ClosedRange<Int>) -> ClosedRange<Int>? {
+        let lower = tokens.firstIndex { NSMaxRange($0.range) > characters.lowerBound } ?? tokens.count
+        let upper = (tokens.lastIndex { $0.range.location <= characters.upperBound } ?? -1)
+        return lower <= upper ? lower...upper : nil
+    }
+
+    var fallbackWordRange: ClosedRange<Int> {
+        max(0, nextIndex - Self.fallbackReach)...(nextIndex + Self.fallbackReach)
+    }
 
     /// Words already heard in the running audio segment stay consumed: the
     /// recognizer keeps repeating them in every later result of that segment.
@@ -52,14 +71,14 @@ struct ScriptFollower {
         ignoredPrefix = previousWords.count; acceptedThrough = previousWords.count
         precedingContext = []; precedingUncommitted = 0; allowedWords = []; surfaceContext = []
         missedWords = 0; isOffScript = false; lastMatch = nil; hasFreshEvidence = false
-        lastInputWasDuplicate = false; nearMisses = [:]
+        lastInputWasDuplicate = false; nearMisses = [:]; pendingJump = nil
     }
 
     mutating func resetEvidence() {
         previousWords = []; precedingContext = []; precedingUncommitted = 0; allowedWords = []
         ignoredPrefix = 0; acceptedThrough = 0; segmentID = nil; missedWords = 0; isOffScript = false; lastMatch = nil
         surfaceContext = []; previousSurface = []; hasFreshEvidence = false
-        lastInputWasDuplicate = false; nearMisses = [:]
+        lastInputWasDuplicate = false; nearMisses = [:]; pendingJump = nil
     }
 
     mutating func consume(_ text: String, segment: Double, accepting: Bool) -> Int? {
@@ -96,7 +115,7 @@ struct ScriptFollower {
         previousSurface = heard.map(\.surface)
         guard accepting else {
             ignoredPrefix = words.count; precedingContext = []; precedingUncommitted = 0; allowedWords = []
-            missedWords = 0
+            missedWords = 0; pendingJump = nil
             surfaceContext = []
             return nil
         }
@@ -141,7 +160,7 @@ struct ScriptFollower {
         if let local, freshContentCount <= 2 || local.newMatches >= freshContentCount - 1 {
             return commit(local, wordsCount: consumed, freshStart: freshStart)
         }
-        let endpoints = (occurrences[last] ?? []).filter { $0 >= floorIndex }
+        let endpoints = (occurrences[last] ?? []).filter { $0 >= floorIndex && reach?.contains($0) ?? true }
         // An inverted word index makes even a distant re-entry cheap. Common
         // words get at most 240 candidate positions, nearest first.
         let candidates = nearestEndpoints(endpoints, limit: 240)
@@ -149,7 +168,7 @@ struct ScriptFollower {
         let eligible = candidates.filter { candidate in
             let distance = candidate.end + 1 - nextIndex
             let backward = distance <= 0
-            let far = abs(distance) > 24
+            let far = abs(distance) > Self.localSpan
             guard candidate.newMatches > 0, !candidate.pairs.isEmpty else { return false }
             // Corrected volatile text may improve alignment, but must not rewind.
             if backward && revision { return false }
@@ -159,8 +178,9 @@ struct ScriptFollower {
                     && candidate.tailMatches >= remaining && candidate.informative >= 1
             }
             if backward || far || isOffScript {
-                return candidate.uncommittedMatches >= 4 && candidate.informative >= 2
-                    && candidate.coverage >= 0.78 && candidate.tailMatches >= 2
+                // The further away, the more matching words a jump needs.
+                return candidate.uncommittedMatches >= Self.requiredMatches(distance: distance)
+                    && candidate.informative >= 2 && candidate.coverage >= 0.78 && candidate.tailMatches >= 2
             }
             return candidate.uncommittedMatches >= 2 && candidate.coverage >= 0.7 && candidate.tailMatches >= 2
         }.sorted { rank($0) > rank($1) }
@@ -172,6 +192,7 @@ struct ScriptFollower {
             return commit(local, wordsCount: consumed, freshStart: freshStart)
         }
         guard let best = eligible.first else {
+            pendingJump = nil
             if let nearby = flexibleReturn(query, freshStart: freshStart, uncommittedStart: uncommittedStart) {
                 return commit(nearby, wordsCount: consumed, freshStart: freshStart)
             }
@@ -180,7 +201,7 @@ struct ScriptFollower {
             return nil
         }
         let distance = best.end + 1 - nextIndex
-        let recovering = isOffScript || distance <= 0 || distance > 24
+        let recovering = isOffScript || distance <= 0 || distance > Self.localSpan
         if recovering {
             // Identical phrases in several places are not enough to relocate.
             // Wait for the next distinguishing words instead of guessing.
@@ -188,7 +209,18 @@ struct ScriptFollower {
                 abs($0.end - best.end) > 3 && $0.matches >= best.matches
                     && $0.coverage >= best.coverage - 0.05 && abs($0.score - best.score) < 2
             }
-            if ambiguous { isOffScript = true; return nil }
+            if ambiguous { isOffScript = true; pendingJump = nil; return nil }
+        }
+        if abs(distance) > Self.localSpan {
+            // Reading on is far more likely than a jump: the heard words must
+            // fit the distant phrase clearly better than anything nearby, and
+            // the next result must continue it, before the text moves there.
+            let nearby = candidates.filter { abs($0.end + 1 - nextIndex) <= Self.localSpan }.map(\.score).max() ?? 0
+            guard best.score >= nearby + 6 else { pendingJump = nil; return nil }
+            guard let pending = pendingJump, best.end > pending, best.end - pending <= 6 else {
+                if pendingJump != best.end { pendingJump = best.end }
+                return nil
+            }
         }
         return commit(best, wordsCount: consumed, freshStart: freshStart)
     }
@@ -223,8 +255,9 @@ struct ScriptFollower {
     }
 
     mutating func acceptSemanticAnchor(_ index: Int, expectedNextIndex: Int) -> Bool {
-        guard nextIndex == expectedNextIndex, index >= nextIndex, index < min(tokens.count, nextIndex + 24) else { return false }
-        nextIndex = index + 1
+        guard nextIndex == expectedNextIndex, index >= nextIndex, index < min(tokens.count, nextIndex + 24),
+              reach?.contains(index) ?? true else { return false }
+        nextIndex = index + 1; pendingJump = nil
         acceptedThrough = previousWords.count; precedingUncommitted = 0
         isOffScript = false; missedWords = 0; hasFreshEvidence = false
         lastMatch = FollowMatch(wordIndices: [index], reacquired: true, confidence: 0)
@@ -239,7 +272,7 @@ struct ScriptFollower {
     /// anchors may bridge a few changed words in the next 16 script tokens.
     /// Neither already consumed evidence nor trailing asides can drive it.
     private func flexibleReturn(_ query: [String], freshStart: Int, uncommittedStart: Int) -> Candidate? {
-        let window = nextIndex..<min(tokens.count, nextIndex + 16)
+        let window = nextIndex..<min(tokens.count, nextIndex + 16, max(nextIndex + 6, reach.map { $0.upperBound + 1 } ?? tokens.count))
         guard window.count >= 2, uncommittedStart < query.count else { return nil }
         let locations = Dictionary(grouping: window, by: { tokens[$0].normalized })
         var paths: [[Pair]] = []
@@ -290,8 +323,9 @@ struct ScriptFollower {
 
     private mutating func commit(_ best: Candidate, wordsCount: Int, freshStart: Int) -> Int? {
         let distance = best.end + 1 - nextIndex
-        let recovering = isOffScript || distance <= 0 || distance > 24
+        let recovering = isOffScript || distance <= 0 || distance > Self.localSpan
         let oldIndex = nextIndex
+        pendingJump = nil
         nextIndex = best.end + 1
         acceptedThrough = wordsCount
         precedingUncommitted = 0
@@ -428,6 +462,15 @@ struct ScriptFollower {
         let informative = pairs.filter { $0.query >= uncommittedStart && Self.isInformative(query[$0.query]) }.count
         return Candidate(end: end, score: score, pairs: pairs, coverage: coverage, tailMatches: tailMatches,
                          informative: informative, newMatches: pairs.filter { $0.query >= freshStart }.count, uncommittedMatches: pairs.filter { $0.query >= uncommittedStart }.count)
+    }
+
+    /// Within this many words ahead, a match counts as reading on.
+    static let localSpan = 24
+
+    /// Four matching words up to 48 words away, one more per further 48,
+    /// at most six.
+    static func requiredMatches(distance: Int) -> Int {
+        4 + min(2, max(0, abs(distance) - 1) / 48)
     }
 
     private static func isInformative(_ word: String) -> Bool {

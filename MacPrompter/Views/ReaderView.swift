@@ -125,6 +125,7 @@ final class ReaderViewport: NSView {
         frameTarget.reader = self
         session.onManualMovement = { [weak self] in self?.followManualMovement() }
         session.voiceGeometry = { [weak self] character in self?.continuousVoiceOffset(at: character) }
+        session.voiceReach = { [weak self] character in self?.reachableCharacters(around: character) }
         setAccessibilityElement(true)
         setAccessibilityRole(.staticText)
         setAccessibilityLabel("Promptertext")
@@ -316,6 +317,21 @@ final class ReaderViewport: NSView {
         let x = line.minX + manager.location(forGlyphAt: glyph).x
         let fraction = used.width > 0 ? min(1, max(0, (x - used.minX) / used.width)) : 0
         return max(0, line.minY - 12 - line.height * (1 - fraction), line.maxY + 12 - bounds.height * 0.58)
+    }
+
+    /// One window height above and below the reading line: speech may only
+    /// jump to text the speaker can see from there.
+    func reachableCharacters(around character: Int) -> ClosedRange<Int>? {
+        guard laidOut, !lastBody.isEmpty, bounds.height > 0,
+              let manager = text.layoutManager, let container = text.textContainer else { return nil }
+        let length = (lastBody as NSString).length
+        let index = min(max(0, character), length - 1)
+        let line = manager.lineFragmentRect(forGlyphAt: manager.glyphIndexForCharacter(at: index), effectiveRange: nil)
+        let top = manager.glyphIndex(for: CGPoint(x: 0, y: max(0, line.minY - bounds.height)), in: container)
+        let bottom = manager.glyphIndex(for: CGPoint(x: container.size.width, y: line.minY + bounds.height), in: container)
+        let lower = min(index, manager.characterIndexForGlyph(at: top))
+        let upper = max(index, manager.characterIndexForGlyph(at: bottom))
+        return lower...upper
     }
 
     private func scrollToOffset() {

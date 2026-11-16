@@ -23,9 +23,11 @@ final class FollowingTests: XCTestCase {
         var follower = ScriptFollower(text: "Welcome to our studio. \(filler) Solar panels generate renewable electricity every morning.")
         _ = follower.consume("Welcome to our studio", segment: 0, accepting: true)
         _ = follower.consume("Can you explain the investment schedule please", segment: 1, accepting: true)
-        XCTAssertNotNil(follower.consume("Solar panels generate renewable electricity", segment: 2, accepting: true))
+        XCTAssertNil(follower.consume("Solar panels generate renewable electricity", segment: 2, accepting: true))
+        XCTAssertEqual(follower.nextIndex, 4, "a distant jump waits for one more word")
+        XCTAssertNotNil(follower.consume("Solar panels generate renewable electricity every", segment: 2, accepting: true))
         XCTAssertTrue(follower.lastMatch?.reacquired == true)
-        XCTAssertEqual(follower.tokens[follower.nextIndex].normalized, "every")
+        XCTAssertEqual(follower.tokens[follower.nextIndex].normalized, "morning")
     }
 
     func testCanReturnToEarlierDistinctiveSentence() {
@@ -40,12 +42,13 @@ final class FollowingTests: XCTestCase {
 
     func testAmbiguousDistantPhraseWaitsForDistinguishingWord() {
         let filler = Array(repeating: "filler", count: 50).joined(separator: " ")
-        var follower = ScriptFollower(text: "Welcome friends. \(filler) Solar panels generate renewable electricity today. \(filler) Solar panels generate renewable electricity tomorrow.")
+        var follower = ScriptFollower(text: "Welcome friends. \(filler) Solar panels generate renewable electricity today. \(filler) Solar panels generate renewable electricity tomorrow morning.")
         _ = follower.consume("Welcome friends", segment: 0, accepting: true)
         _ = follower.consume("Let's take a question from our audience", segment: 1, accepting: true)
         XCTAssertNil(follower.consume("Solar panels generate renewable electricity", segment: 2, accepting: true))
         XCTAssertEqual(follower.nextIndex, 2)
-        XCTAssertNotNil(follower.consume("Solar panels generate renewable electricity tomorrow", segment: 2, accepting: true))
+        XCTAssertNil(follower.consume("Solar panels generate renewable electricity tomorrow", segment: 2, accepting: true))
+        XCTAssertNotNil(follower.consume("Solar panels generate renewable electricity tomorrow morning", segment: 2, accepting: true))
         XCTAssertEqual(follower.nextIndex, follower.tokens.count)
     }
 
