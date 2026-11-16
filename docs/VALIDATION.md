@@ -292,3 +292,11 @@ Automatische Sprachumschaltung innerhalb eines Skripts, Sprechererkennung, indiv
 - `scripts/ci_reuse.sh` gegen die Läufe von 1.1.0 geprüft: Doku-PR, Merge-Pushes und Tag `v1.1.0` wären übersprungen worden, PRs und manuelle Läufe nicht.
 - Vom Maintainer mit der installierten Testversion und echtem Mikrofon geprüft: kein Rücksprung nach Folienwechsel mitten im Satz („hat geklappt“), Text vor [Weiter] bleibt grau („klappt jetzt“).
 - **Manuell offen:** nach Veröffentlichung DMG laden, Prüfsumme und Signatur prüfen, über 1.1.0 installieren; in der Release-Ausgabe kontrollieren, dass der Testschritt übersprungen wurde.
+- Nachgetragen am 16.11.2026: Release-Lauf für `v1.1.1` übernahm das grüne Ergebnis von `main` („Already tested on main“, Testschritt übersprungen). DMG von GitHub geladen: Prüfsumme stimmt, `codesign --verify --strict --deep` erfolgreich, Version 1.1.1.
+
+## Release 1.1.2 · 16.11.2026
+
+- Inhalt: Sprünge der Sprachsteuerung höchstens eine Fensterhöhe weit, mit mehr nötigen Wörtern bei größerer Entfernung, Vorrang fürs Weiterlesen und Bestätigung durch ein weiteres Wort (ADR-33). Version 1.1.2, Build 4.
+- Neun neue Tests (`JumpLimitTests`, `SessionJumpLimitTests`): keine Sprünge außerhalb des Bereichs auch bei wörtlicher Übereinstimmung, Bestätigung und Verwerfen vorgemerkter Sprünge, Evidenz nach Entfernung, Weiterlesen vor ähnlichem Satz weiter unten, Reader-Bereich wächst mit der Fensterhöhe, Sitzung ohne Reader-Geometrie begrenzt. Zwei bestehende Tests für entfernte Rückkehr erwarten jetzt die Bestätigung durch ein Folgewort. Lokal unter macOS 27: 267 Tests, `scripts/check.sh --release` erfolgreich.
+- Vom Maintainer mit der installierten Testversion und echtem Mikrofon geprüft („klappt sehr gut“).
+- **Manuell offen:** nach Veröffentlichung DMG laden, Prüfsumme und Signatur prüfen, über 1.1.1 installieren; absichtliches Überspringen von mehr als einer Fensterhöhe im Notch- und im freien Fenster.
