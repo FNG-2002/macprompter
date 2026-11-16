@@ -4,6 +4,12 @@ Alle nennenswerten Änderungen. Format nach [Keep a Changelog](https://keepachan
 
 ## [Unreleased]
 
+### Behoben
+- Modus Stimme: Erkannte die Sprachsteuerung eine Wortfolge, die weiter unten im Skript noch einmal ähnlich vorkommt, konnte der Text viele Seiten weit springen. Jetzt springt sie höchstens so weit, wie das Prompterfenster Text zeigt, eine Fensterhöhe nach oben oder unten. Je weiter eine Stelle entfernt ist, desto mehr Wörter müssen passen. Vor einem entfernten Sprung muss außerdem noch ein weiteres gesprochenes Wort dazu passen, und die Wörter müssen deutlich besser zur entfernten Stelle passen als zum Text direkt danach. Weiterlesen hat immer Vorrang.
+
+### Bekannte Grenzen
+- Überspringst du absichtlich mehr als eine Fensterhöhe, findet die Sprachsteuerung die Stelle nicht mehr von selbst. Scrolle dann kurz mit Scrollrad, Pfeiltasten oder Folienwechsel hin.
+
 ## [1.1.1] – 2026-11-11
 
 Eine Korrekturversion für alle, die mit Sprachsteuerung präsentieren: Wechselst du mitten im Satz per Taste, Klicker oder iPhone die Folie, bleibt der Text jetzt auf der gewählten Folie, statt zurückzuspringen und hängen zu bleiben. Übersprungener Text bleibt dabei abgedunkelt wie gesprochener.

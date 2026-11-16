@@ -37,6 +37,9 @@ final class PrompterSession {
     /// Supplied by the reader: continuous scroll offset for a character
     /// position, used by speech-paced scrolling.
     @ObservationIgnored var voiceGeometry: ((Double) -> Double?)?
+    /// Supplied by the reader: the characters within one prompter window
+    /// above and below a character. Speech never jumps beyond them.
+    @ObservationIgnored var voiceReach: ((Int) -> ClosedRange<Int>?)?
     private var reachedScriptEnd = false
     @ObservationIgnored var elapsed = 0.0
     private(set) var elapsedSeconds = 0
@@ -264,6 +267,7 @@ final class PrompterSession {
     func receiveTranscript(_ text: String, segment: Double, endTime: Double, timing: SpeechResultTiming? = nil) {
         let start = ProcessInfo.processInfo.systemUptime
         let accepts = gate.allowsAutomaticMovement && endTime > ignoreSpeechThrough
+        updateReach()
         _ = follower.consume(text, segment: segment, accepting: accepts)
         // A final/volatile duplicate must not discard an in-flight answer or
         // replace its original deadline. New evidence and rejected audio do.
@@ -291,6 +295,15 @@ final class PrompterSession {
             showWord(last, jump: match.reacquired)
             if let range = activeWordRange { pendingHighlightSample = (sampleID, range) }
         }
+    }
+
+    /// Without reader geometry (before the first layout) a fixed word
+    /// window applies, so a jump is never unbounded.
+    private func updateReach() {
+        let tokens = follower.tokens
+        guard !tokens.isEmpty else { return }
+        let reading = tokens[min(follower.nextIndex, tokens.count - 1)].range.location
+        follower.reach = voiceReach?(reading).flatMap(follower.wordRange(in:)) ?? follower.fallbackWordRange
     }
 
     func checkSemanticModels() async {
